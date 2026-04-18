@@ -282,6 +282,36 @@
     .cand-hint { font-size:12px; color:#90A4AE; text-align:center; margin-bottom:4px; }
     .cand-section-title { font-size:13px; font-weight:800; color:var(--text-sub); margin:14px 0 4px; text-align:center; }
 
+    /* ── STICKER TAB ── */
+    .sticker-tab-row { display:flex; border-bottom:2px solid #EEE; margin-bottom:14px; }
+    .sticker-tab-btn { flex:1; padding:10px 0; border:none; background:none; font-size:14px; font-weight:700; color:#90A4AE; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; font-family:inherit; transition:all .18s; }
+    .sticker-tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+    /* ── PHOTO STICKER ── */
+    .photo-upload-area { border:2.5px dashed #B0C4E0; border-radius:18px; padding:22px 16px; text-align:center; background:#F0F7FF; cursor:pointer; transition:border-color .2s; margin-bottom:12px; }
+    .photo-upload-area:hover { border-color:var(--blue); }
+    .photo-upload-area input[type=file] { display:none; }
+    .photo-upload-icon { font-size:36px; margin-bottom:6px; }
+    .photo-upload-label { font-size:13px; color:var(--text-sub); font-weight:700; line-height:1.6; }
+    .photo-upload-sub { font-size:11px; color:#90A4AE; margin-top:4px; }
+    .photo-preview-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:12px; }
+    .photo-canvas-preview { box-shadow:0 4px 14px rgba(0,0,0,.18); }
+    .photo-canvas-preview.frame-circle { border-radius:50%; }
+    .photo-canvas-preview.frame-rounded { border-radius:22px; }
+    .photo-canvas-preview.frame-heart { clip-path:url(#heartClip); }
+    .frame-selector { display:flex; gap:10px; justify-content:center; }
+    .frame-btn { width:48px; height:48px; border:2.5px solid #DDD; border-radius:10px; background:#F8F8F8; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; transition:all .18s; }
+    .frame-btn.selected { border-color:var(--blue); background:#E3F2FD; transform:scale(1.1); }
+    .frame-label { font-size:10px; color:#90A4AE; font-weight:600; text-align:center; margin-top:2px; }
+    .frame-btn-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .photo-err { font-size:12px; color:var(--red); text-align:center; margin-bottom:8px; }
+
+    /* photo sticker display in album / candidates */
+    .stk-photo { object-fit:cover; width:100%; height:100%; display:block; }
+    .stk-wrap.frame-circle { border-radius:50%; }
+    .stk-wrap.frame-rounded { border-radius:20px; }
+    .stk-wrap.frame-heart { clip-path:url(#heartClip); border-radius:0; }
+
     /* ── BUTTONS ── */
     .btn { display:block; width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:900; cursor:pointer; transition:all .2s; font-family:inherit; letter-spacing:.4px; }
     .btn+.btn{margin-top:9px}
@@ -310,6 +340,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <div id="stars"></div>
+
+<!-- SVG defs for heart clip-path -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <clipPath id="heartClip" clipPathUnits="objectBoundingBox">
+      <path d="M0.5,0.9 C0.5,0.9 0.05,0.55 0.05,0.3 C0.05,0.12 0.18,0.05 0.3,0.05 C0.4,0.05 0.5,0.15 0.5,0.15 C0.5,0.15 0.6,0.05 0.7,0.05 C0.82,0.05 0.95,0.12 0.95,0.3 C0.95,0.55 0.5,0.9 0.5,0.9 Z"/>
+    </clipPath>
+  </defs>
+</svg>
 
 <!-- SETUP -->
 <div id="screen-setup" class="fullscreen hidden">
@@ -498,19 +537,57 @@
     <div class="sheet-header">
       <div>
         <div class="sheet-date">🏷️ シールをえらぼう！</div>
-        <div class="sheet-sub">すきなデザインのことばを入れてね</div>
+        <div class="sheet-sub">絵文字か写真でシールをつくってね</div>
       </div>
     </div>
     <div class="sheet-body">
-      <div class="search-row">
-        <div class="search-input-wrap">
-          <input type="text" id="sticker-search-input" class="form-input" placeholder="例: ねこ、いちご、にじ…">
-        </div>
-        <button class="search-btn" onclick="runStickerSearch()">けんさく</button>
+      <!-- タブ切り替え -->
+      <div class="sticker-tab-row">
+        <button class="sticker-tab-btn active" id="tab-emoji-btn" onclick="switchStickerTab('emoji')">😊 絵文字シール</button>
+        <button class="sticker-tab-btn" id="tab-photo-btn" onclick="switchStickerTab('photo')">📷 写真シール</button>
       </div>
-      <div class="cand-hint" id="cand-hint">↑ ことばを入れてさがしてみよう！</div>
-      <div class="cand-section-title hidden" id="cand-section-title">どれがいい？ひとつえらんでね ✨</div>
-      <div class="cand-grid" id="cand-grid"></div>
+
+      <!-- 絵文字タブ -->
+      <div id="tab-emoji-content">
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <input type="text" id="sticker-search-input" class="form-input" placeholder="例: ねこ、いちご、にじ…">
+          </div>
+          <button class="search-btn" onclick="runStickerSearch()">けんさく</button>
+        </div>
+        <div class="cand-hint" id="cand-hint">↑ ことばを入れてさがしてみよう！</div>
+        <div class="cand-section-title hidden" id="cand-section-title">どれがいい？ひとつえらんでね ✨</div>
+        <div class="cand-grid" id="cand-grid"></div>
+      </div>
+
+      <!-- 写真タブ -->
+      <div id="tab-photo-content" class="hidden">
+        <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById('photo-file-input').click()">
+          <input type="file" id="photo-file-input" accept="image/*" onchange="handlePhotoUpload(this)">
+          <div class="photo-upload-icon">📷</div>
+          <div class="photo-upload-label">写真をえらぶ・カメラで撮る</div>
+          <div class="photo-upload-sub">JPEG / PNG など（10MBまで）</div>
+        </div>
+        <div class="photo-err hidden" id="photo-err"></div>
+        <div class="photo-preview-wrap hidden" id="photo-preview-wrap">
+          <canvas id="photo-canvas-preview" width="120" height="120" class="photo-canvas-preview frame-circle"></canvas>
+          <div class="frame-selector">
+            <div class="frame-btn-wrap">
+              <button class="frame-btn selected" id="frame-btn-circle" onclick="selectPhotoFrame('circle')">⭕</button>
+              <div class="frame-label">まる</div>
+            </div>
+            <div class="frame-btn-wrap">
+              <button class="frame-btn" id="frame-btn-rounded" onclick="selectPhotoFrame('rounded')">🟦</button>
+              <div class="frame-label">かくまる</div>
+            </div>
+            <div class="frame-btn-wrap">
+              <button class="frame-btn" id="frame-btn-heart" onclick="selectPhotoFrame('heart')">❤️</button>
+              <div class="frame-label">ハート</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button class="btn btn-pink" id="btn-confirm-sticker" onclick="confirmSticker()" disabled style="margin-top:8px">このシールにする！ 🎉</button>
       <button class="btn btn-gray" onclick="skipSticker()" style="margin-top:9px">スキップ</button>
     </div>
@@ -811,7 +888,11 @@ function renderStickerBook(){
   }
   grid.innerHTML=stickers.map(s=>{
     const[,mm,dd]=s.date.split('-');const dl=`${parseInt(mm)}/${parseInt(dd)}`;
-    return `<div class="sticker-grid-item"><div class="stk-wrap stk-${s.tmpl}" style="width:58px;height:58px"><span class="stk-emoji">${s.emoji}</span></div><div class="sticker-item-date">${dl}</div></div>`;
+    const inner = s.photoData
+      ? `<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
+      : `<span class="stk-emoji">${s.emoji}</span>`;
+    const frameClass = s.photoData ? `frame-${s.photoFrame||'circle'}` : `stk-${s.tmpl}`;
+    return `<div class="sticker-grid-item"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px">${inner}</div><div class="sticker-item-date">${dl}</div></div>`;
   }).join('');
 }
 
@@ -859,21 +940,104 @@ function startEmojiRain(container){
   }
 }
 
+let currentStickerTab = 'emoji';
+let photoImageData = null;
+let selectedPhotoFrame = 'circle';
+let photoSourceImg = null;
+
 function openStickerSearch(){
   document.getElementById('celebrate-screen').classList.add('hidden');
-  // reset search modal
+  // reset emoji tab
   document.getElementById('sticker-search-input').value='';
   document.getElementById('cand-grid').innerHTML='';
   document.getElementById('cand-hint').classList.remove('hidden');
   document.getElementById('cand-section-title').classList.add('hidden');
   document.getElementById('btn-confirm-sticker').disabled=true;
   selectedCandIdx=null;currentCandidates=[];
-  // show random 5 initially
   currentCandidates=searchStickers('');
   renderCandidates();
   document.getElementById('cand-hint').textContent='↓ ことばでさがすか、このままえらんでもOK！';
   document.getElementById('cand-section-title').classList.remove('hidden');
+  // reset photo tab
+  photoImageData=null; photoSourceImg=null; selectedPhotoFrame='circle';
+  document.getElementById('photo-file-input').value='';
+  document.getElementById('photo-preview-wrap').classList.add('hidden');
+  document.getElementById('photo-upload-area').classList.remove('hidden');
+  document.getElementById('photo-err').classList.add('hidden');
+  ['circle','rounded','heart'].forEach(f=>{
+    document.getElementById(`frame-btn-${f}`).classList.toggle('selected', f==='circle');
+  });
+  const cv=document.getElementById('photo-canvas-preview');
+  cv.className='photo-canvas-preview frame-circle';
+  // reset to emoji tab
+  switchStickerTab('emoji');
   document.getElementById('sticker-search-overlay').classList.add('open');
+}
+
+function switchStickerTab(tab){
+  currentStickerTab=tab;
+  document.getElementById('tab-emoji-btn').classList.toggle('active', tab==='emoji');
+  document.getElementById('tab-photo-btn').classList.toggle('active', tab==='photo');
+  document.getElementById('tab-emoji-content').classList.toggle('hidden', tab!=='emoji');
+  document.getElementById('tab-photo-content').classList.toggle('hidden', tab!=='photo');
+  // update confirm button availability
+  if(tab==='emoji'){
+    document.getElementById('btn-confirm-sticker').disabled=(selectedCandIdx===null);
+  } else {
+    document.getElementById('btn-confirm-sticker').disabled=(photoImageData===null);
+  }
+}
+
+function handlePhotoUpload(input){
+  const file=input.files[0];
+  if(!file)return;
+  const errEl=document.getElementById('photo-err');
+  if(file.size>10*1024*1024){
+    errEl.textContent='ファイルが大きすぎます（10MB以下にしてね）';
+    errEl.classList.remove('hidden');return;
+  }
+  errEl.classList.add('hidden');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      photoSourceImg=img;
+      document.getElementById('photo-upload-area').classList.add('hidden');
+      document.getElementById('photo-preview-wrap').classList.remove('hidden');
+      renderPhotoPreview();
+      document.getElementById('btn-confirm-sticker').disabled=false;
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPhotoPreview(){
+  if(!photoSourceImg)return;
+  const cv=document.getElementById('photo-canvas-preview');
+  const size=120;
+  cv.width=size; cv.height=size;
+  cv.className=`photo-canvas-preview frame-${selectedPhotoFrame}`;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,size,size);
+  // crop to square from center
+  const s=photoSourceImg;
+  const side=Math.min(s.width,s.height);
+  const sx=(s.width-side)/2; const sy=(s.height-side)/2;
+  ctx.drawImage(s,sx,sy,side,side,0,0,size,size);
+  // extract data for saving (58x58 JPEG)
+  const saveCanvas=document.createElement('canvas');
+  saveCanvas.width=58; saveCanvas.height=58;
+  saveCanvas.getContext('2d').drawImage(s,sx,sy,side,side,0,0,58,58);
+  photoImageData=saveCanvas.toDataURL('image/jpeg',0.6);
+}
+
+function selectPhotoFrame(frame){
+  selectedPhotoFrame=frame;
+  ['circle','rounded','heart'].forEach(f=>{
+    document.getElementById(`frame-btn-${f}`).classList.toggle('selected',f===frame);
+  });
+  renderPhotoPreview();
 }
 
 function runStickerSearch(){
@@ -905,20 +1069,25 @@ function selectCand(idx){
 }
 
 function confirmSticker(){
-  if(selectedCandIdx===null)return;
-  const chosen=currentCandidates[selectedCandIdx];
   const id=Date.now().toString();
   const date=new Date().toISOString().slice(0,10);
-  familyRef().child(`stickers/${id}`).set({
-    date, emoji:chosen.e, name:chosen.n, tmpl:chosen.tmpl, condition:currentStickerCondition
-  });
+  if(currentStickerTab==='photo'){
+    if(!photoImageData)return;
+    familyRef().child(`stickers/${id}`).set({
+      date, emoji:'', name:'写真シール', tmpl:0, condition:currentStickerCondition,
+      photoData:photoImageData, photoFrame:selectedPhotoFrame
+    });
+  } else {
+    if(selectedCandIdx===null)return;
+    const chosen=currentCandidates[selectedCandIdx];
+    familyRef().child(`stickers/${id}`).set({
+      date, emoji:chosen.e, name:chosen.n, tmpl:chosen.tmpl, condition:currentStickerCondition
+    });
+  }
   document.getElementById('sticker-search-overlay').classList.remove('open');
   selectedCandIdx=null;
-  // mini celebration
   starEffect(3);
-  // process next sticker if queued
   if(pendingStickers.length>0)setTimeout(processNextSticker,800);
-  // switch to sticker book
   setTimeout(()=>go('sticker'),400);
 }
 
