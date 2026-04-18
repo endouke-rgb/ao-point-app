@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>アオのポイント管理</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue:       #2196F3;
+      --blue-dark:  #1565C0;
+      --blue-light: #E3F2FD;
+      --yellow:     #FFC107;
+      --gold:       #E65100;
+      --red:        #E53935;
+      --green:      #43A047;
+      --bg:         #EFF6FF;
+      --white:      #FFFFFF;
+      --text:       #1A237E;
+      --text-sub:   #5C6BC0;
+      --shadow:     rgba(33,150,243,0.14);
+    }
+
+    body {
+      font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(160deg, #DCEEFF 0%, #EDE7F6 100%);
+      min-height: 100vh;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, #1565C0, #42A5F5);
+      padding: 14px 18px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 4px 16px rgba(21,101,192,0.3);
+    }
+    .header-title { font-size: 17px; font-weight: 900; color: white; letter-spacing: 0.3px; }
+    .header-badge {
+      background: rgba(255,255,255,0.18);
+      border: 2px solid rgba(255,255,255,0.45);
+      border-radius: 100px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .header-pts { font-size: 22px; font-weight: 900; color: #FFE082; }
+    .header-unit { font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 700; }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      padding: 14px 12px 82px;
+    }
+
+    /* ── BOTTOM NAV ── */
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      border-top: 1px solid #DDEEFF;
+      display: flex;
+      box-shadow: 0 -4px 16px rgba(33,150,243,0.1);
+      z-index: 50;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 9px 0 7px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .nav-icon { font-size: 23px; line-height: 1; transition: transform 0.2s; }
+    .nav-label { font-size: 10px; font-weight: 700; color: #90A4AE; }
+    .nav-btn.active .nav-label { color: var(--blue); }
+    .nav-btn.active .nav-icon { transform: scale(1.15); }
+
+    /* ── SCREENS ── */
+    .screen { display: none; animation: fadeUp 0.3s ease-out both; }
+    .screen.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════
+       CALENDAR
+    ═══════════════════════════════ */
+    .cal-card {
+      background: white;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 6px 24px var(--shadow);
+    }
+    .cal-head {
+      background: linear-gradient(135deg, #1E88E5, #7986CB);
+      padding: 13px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cal-month { font-size: 18px; font-weight: 900; color: white; }
+    .cal-arrow {
+      background: rgba(255,255,255,0.22);
+      border: none;
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      font-size: 20px; color: white;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .cal-arrow:hover { background: rgba(255,255,255,0.38); }
+
+    .cal-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #F0F7FF;
+      border-bottom: 1px solid #DDEEFF;
+    }
+    .dow-cell {
+      text-align: center;
+      padding: 7px 0;
+      font-size: 11px;
+      font-weight: 800;
+      color: #78909C;
+    }
+    .dow-cell:first-child { color: #EF5350; }
+    .dow-cell:last-child  { color: #42A5F5; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: #ECEFF1;
+    }
+    .day-cell {
+      background: white;
+      min-height: 46px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 3px 2px;
+      position: relative;
+      gap: 2px;
+      transition: background 0.15s;
+    }
+    .day-cell:hover    { background: #E3F2FD; }
+    .day-cell.empty    { background: #FAFAFA; cursor: default; }
+    .day-cell.kumon    { background: #E8F4FD; }
+    .day-cell.kumon:hover { background: #BBDEFB; }
+    .day-cell.today .day-num-wrap {
+      background: var(--green);
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .day-cell.today .day-num { color: white !important; }
+    .day-cell.sun .day-num { color: #EF5350; }
+    .day-cell.sat .day-num { color: #42A5F5; }
+
+    .day-num { font-size: 13px; font-weight: 700; color: #37474F; line-height: 1; }
+    .day-pts-badge {
+      font-size: 10px; font-weight: 800;
+      background: linear-gradient(135deg, #FFC107, #FF9800);
+      color: white;
+      border-radius: 100px;
+      padding: 1px 5px;
+      line-height: 1.5;
+    }
+    .kumon-dot {
+      position: absolute;
+      top: 3px; right: 3px;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #42A5F5;
+    }
+
+    .cal-legend {
+      display: flex;
+      gap: 14px;
+      padding: 10px 16px;
+      background: #F5F9FF;
+      font-size: 11px;
+      color: #78909C;
+      font-weight: 600;
+      flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ═══════════════════════════════
+       CONSUME
+    ═══════════════════════════════ */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 6px 24px var(--shadow);
+      margin-bottom: 14px;
+    }
+    .card-title { font-size: 16px; font-weight: 900; color: var(--text); margin-bottom: 16px; }
+
+    .balance-box {
+      background: linear-gradient(135deg, #FFF8E1, #FFF3E0);
+      border: 2px solid #FFE082;
+      border-radius: 16px;
+      padding: 18px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .balance-label { font-size: 12px; color: #FF8F00; font-weight: 700; margin-bottom: 4px; }
+    .balance-num { font-size: 52px; font-weight: 900; color: var(--gold); line-height: 1; }
+    .balance-unit-label { font-size: 16px; color: #FF8F00; font-weight: 700; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 13px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; }
+    .form-input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 2px solid #DDEEFF;
+      border-radius: 14px;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--blue); }
+    .form-input.err   { border-color: var(--red); }
+    .err-msg { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
+    .err-msg.show { display: block; }
+
+    /* ═══════════════════════════════
+       HISTORY
+    ═══════════════════════════════ */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 14px 8px;
+      text-align: center;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .stat-icon  { font-size: 22px; margin-bottom: 4px; }
+    .stat-num   { font-size: 24px; font-weight: 900; color: var(--text); }
+    .stat-label { font-size: 10px; font-weight: 700; color: var(--text-sub); }
+
+    .section-head { font-size: 13px; font-weight: 800; color: var(--text-sub); margin: 14px 0 8px; }
+    .h-list { display: flex; flex-direction: column; gap: 8px; }
+    .h-item {
+      background: white;
+      border-radius: 14px;
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .h-icon {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+    .h-icon.earn  { background: #FFF8E1; }
+    .h-icon.spend { background: #FCE4EC; }
+    .h-info { flex: 1; min-width: 0; }
+    .h-date { font-size: 11px; color: #90A4AE; font-weight: 600; }
+    .h-desc { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .h-pts { font-size: 16px; font-weight: 900; white-space: nowrap; }
+    .h-pts.earn  { color: #F57F17; }
+    .h-pts.spend { color: #C62828; }
+
+    .empty-state { text-align: center; padding: 40px 20px; }
+    .empty-icon { font-size: 52px; margin-bottom: 10px; }
+    .empty-text { font-size: 13px; font-weight: 600; color: #90A4AE; line-height: 1.7; }
+
+    /* ═══════════════════════════════
+       MODAL
+    ═══════════════════════════════ */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,40,0.38);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    .overlay.open { display: flex; animation: bgIn 0.22s ease-out; }
+    @keyframes bgIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .sheet {
+      background: white;
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 480px;
+      max-height: 93vh;
+      overflow-y: auto;
+      padding-bottom: 28px;
+      animation: sheetUp 0.36s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 38px; height: 5px;
+      background: #E0E0E0;
+      border-radius: 100px;
+      margin: 11px auto;
+    }
+    .sheet-header {
+      padding: 4px 18px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #F5F5F5;
+    }
+    .sheet-date { font-size: 17px; font-weight: 900; color: var(--text); }
+    .sheet-sub  { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .sheet-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: #F5F5F5;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #90A4AE;
+    }
+
+    .sheet-body { padding: 16px 18px 0; }
+
+    .m-section { margin-bottom: 18px; }
+    .m-sec-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: white;
+      background: linear-gradient(135deg, #1E88E5, #7986CB);
+      border-radius: 10px;
+      padding: 5px 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 9px;
+    }
+
+    .chk-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 13px;
+      background: #F8FBFF;
+      border: 2px solid #DDEEFF;
+      border-radius: 14px;
+      margin-bottom: 7px;
+      cursor: pointer;
+      transition: all 0.17s;
+      user-select: none;
+    }
+    .chk-row:hover   { border-color: var(--blue); background: #EBF4FF; }
+    .chk-row.checked { border-color: var(--blue); background: linear-gradient(135deg, #E3F2FD, #EDE7F6); }
+    .chk-box {
+      width: 26px; height: 26px;
+      border-radius: 8px;
+      border: 2px solid #B0BEC5;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+      transition: all 0.17s;
+    }
+    .chk-row.checked .chk-box { background: var(--blue); border-color: var(--blue); color: white; }
+    .chk-label { font-size: 14px; font-weight: 700; flex: 1; color: var(--text); }
+    .chk-pt    { font-size: 13px; font-weight: 800; color: #FF8F00; }
+
+    .kumon-only-note {
+      text-align: center;
+      font-size: 12px;
+      color: #90A4AE;
+      background: #F5F5F5;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 18px;
+    }
+
+    .modal-total {
+      background: linear-gradient(135deg, #FFF8E1, #FFF3E0);
+      border: 2px solid #FFE082;
+      border-radius: 14px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .modal-total-label { font-size: 14px; font-weight: 700; color: #FF8F00; }
+    .modal-total-num   { font-size: 28px; font-weight: 900; color: var(--gold); }
+    .modal-total-unit  { font-size: 14px; font-weight: 700; color: var(--gold); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      letter-spacing: 0.4px;
+    }
+    .btn + .btn { margin-top: 9px; }
+    .btn-blue {
+      background: linear-gradient(135deg, #1565C0, #42A5F5);
+      color: white;
+      box-shadow: 0 6px 20px rgba(33,150,243,0.32);
+    }
+    .btn-blue:hover    { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(33,150,243,0.42); }
+    .btn-blue:active   { transform: translateY(0); }
+    .btn-blue:disabled { background: #B0BEC5; box-shadow: none; cursor: not-allowed; transform: none; }
+    .btn-red {
+      background: linear-gradient(135deg, #B71C1C, #EF5350);
+      color: white;
+      box-shadow: 0 6px 20px rgba(239,83,80,0.28);
+    }
+    .btn-red:hover { transform: translateY(-2px); }
+    .btn-outline {
+      background: white;
+      color: #B0BEC5;
+      border: 2px solid #ECEFF1;
+      font-size: 14px;
+    }
+    .btn-outline:hover { border-color: var(--red); color: var(--red); background: #FFEBEE; }
+
+    /* ── STAR EFFECT ── */
+    #stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      animation: starFly linear forwards;
+      will-change: transform, opacity;
+    }
+    @keyframes starFly {
+      0%   { transform: translate(0,0) scale(0.4) rotate(0deg);   opacity: 1; }
+      100% { transform: translate(var(--tx),var(--ty)) scale(1.6) rotate(720deg); opacity: 0; }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-title">⭐ アオのポイント</div>
+    <div class="header-badge">
+      <span class="header-pts" id="header-pts">0</span>
+      <span class="header-unit">pt</span>
+    </div>
+  </header>
+
+  <!-- SCREENS -->
+  <div class="content">
+
+    <!-- ① CALENDAR -->
+    <div id="screen-cal" class="screen active">
+      <div class="cal-card">
+        <div class="cal-head">
+          <button class="cal-arrow" onclick="changeMonth(-1)">‹</button>
+          <div class="cal-month" id="cal-label"></div>
+          <button class="cal-arrow" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-dow">
+          <div class="dow-cell">日</div><div class="dow-cell">月</div>
+          <div class="dow-cell">火</div><div class="dow-cell">水</div>
+          <div class="dow-cell">木</div><div class="dow-cell">金</div>
+          <div class="dow-cell">土</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#E8F4FD;border:1px solid #90CAF9"></div>
+            公文の日（月・木）
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:linear-gradient(135deg,#FFC107,#FF9800)"></div>
+            ポイント獲得済み
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② CONSUME -->
+    <div id="screen-use" class="screen">
+      <div class="card">
+        <div class="card-title">🎁 ポイントをつかう</div>
+        <div class="balance-box">
+          <div class="balance-label">いまのポイント</div>
+          <div>
+            <span class="balance-num" id="use-balance">0</span>
+            <span class="balance-unit-label"> pt</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="use-pts">つかうポイント数</label>
+          <input type="number" id="use-pts" class="form-input" placeholder="例: 10" min="1" inputmode="numeric">
+          <div class="err-msg" id="use-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="use-memo">なにに使う？（メモ）</label>
+          <input type="text" id="use-memo" class="form-input" placeholder="例: ゲームの時間30分">
+        </div>
+        <button class="btn btn-red" onclick="doConsume()">ポイントをつかう 🎁</button>
+      </div>
+    </div>
+
+    <!-- ③ HISTORY -->
+    <div id="screen-hist" class="screen">
+      <div class="stats-row" id="hist-stats"></div>
+      <div class="section-head">📋 ポイントの記録（新しい順）</div>
+      <div class="h-list" id="hist-list"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav">
+    <button class="nav-btn active" id="nav-cal" onclick="go('cal')">
+      <span class="nav-icon">📅</span><span class="nav-label">カレンダー</span>
+    </button>
+    <button class="nav-btn" id="nav-use" onclick="go('use')">
+      <span class="nav-icon">🎁</span><span class="nav-label">つかう</span>
+    </button>
+    <button class="nav-btn" id="nav-hist" onclick="go('hist')">
+      <span class="nav-icon">📋</span><span class="nav-label">りれき</span>
+    </button>
+  </nav>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="overlay" id="overlay" onclick="onOverlayClick(event)">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-date" id="m-date"></div>
+        <div class="sheet-sub"  id="m-sub"></div>
+      </div>
+      <button class="sheet-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="sheet-body">
+
+      <!-- 宿題 -->
+      <div class="m-section">
+        <div class="m-sec-title">📚 宿題（前日までに完了）</div>
+        <div class="chk-row" id="row-hw_math"     onclick="toggle('hw_math')">
+          <div class="chk-box" id="box-hw_math"></div>
+          <div class="chk-label">算数の宿題</div>
+          <div class="chk-pt">+1pt</div>
+        </div>
+        <div class="chk-row" id="row-hw_japanese" onclick="toggle('hw_japanese')">
+          <div class="chk-box" id="box-hw_japanese"></div>
+          <div class="chk-label">国語の宿題</div>
+          <div class="chk-pt">+1pt</div>
+        </div>
+        <div class="chk-row" id="row-hw_english"  onclick="toggle('hw_english')">
+          <div class="chk-box" id="box-hw_english"></div>
+          <div class="chk-label">英語の宿題</div>
+          <div class="chk-pt">+1pt</div>
+        </div>
+      </div>
+
+      <!-- 授業・テスト（公文の日のみ） -->
+      <div id="sec-kumon">
+        <div class="m-section">
+          <div class="m-sec-title">🌟 授業態度（公文の日のみ）</div>
+          <div class="chk-row" id="row-attitude" onclick="toggle('attitude')">
+            <div class="chk-box" id="box-attitude"></div>
+            <div class="chk-label">やりたくないと言わずに集中して受けた</div>
+            <div class="chk-pt">+1pt</div>
+          </div>
+        </div>
+        <div class="m-section">
+          <div class="m-sec-title">💯 テスト100点（公文の日のみ）</div>
+          <div class="chk-row" id="row-test_math"     onclick="toggle('test_math')">
+            <div class="chk-box" id="box-test_math"></div>
+            <div class="chk-label">算数 テスト100点</div>
+            <div class="chk-pt">+1pt</div>
+          </div>
+          <div class="chk-row" id="row-test_japanese" onclick="toggle('test_japanese')">
+            <div class="chk-box" id="box-test_japanese"></div>
+            <div class="chk-label">国語 テスト100点</div>
+            <div class="chk-pt">+1pt</div>
+          </div>
+          <div class="chk-row" id="row-test_english"  onclick="toggle('test_english')">
+            <div class="chk-box" id="box-test_english"></div>
+            <div class="chk-label">英語 テスト100点</div>
+            <div class="chk-pt">+1pt</div>
+          </div>
+        </div>
+      </div>
+      <div class="kumon-only-note hidden" id="non-kumon-note">
+        📌 授業態度・テスト100点は<br>公文の日（月・木）のみ登録できます
+      </div>
+
+      <!-- 合計 -->
+      <div class="modal-total">
+        <div class="modal-total-label">⭐ 今日の合計</div>
+        <div>
+          <span class="modal-total-num" id="m-total">0</span>
+          <span class="modal-total-unit"> pt</span>
+        </div>
+      </div>
+
+      <button class="btn btn-blue" id="btn-reg" onclick="saveRecord()">登録する ✨</button>
+      <button class="btn btn-outline hidden" id="btn-del" onclick="deleteRecord()">この日の記録を削除</button>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════
+   DATA
+════════════════════════════════ */
+const KEY = 'ao_points_v1';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || { records:{}, consumptions:[] }; }
+  catch { return { records:{}, consumptions:[] }; }
+}
+function save(d) { localStorage.setItem(KEY, JSON.stringify(d)); }
+
+const ITEMS = ['hw_math','hw_japanese','hw_english','attitude','test_math','test_japanese','test_english'];
+
+function calcPts(items) { return ITEMS.filter(k => items[k]).length; }
+
+function totalEarned() { return Object.values(load().records).reduce((s,r)=>s+r.points,0); }
+function totalConsumed() { return load().consumptions.reduce((s,c)=>s+c.points,0); }
+function balance() { return totalEarned() - totalConsumed(); }
+
+function isKumon(dow) { return dow===1 || dow===4; } // 月=1, 木=4
+
+function dateKey(y,m,d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+/* ════════════════════════════════
+   HEADER
+════════════════════════════════ */
+function refreshHeader() {
+  document.getElementById('header-pts').textContent = balance();
+}
+
+/* ════════════════════════════════
+   CALENDAR
+════════════════════════════════ */
+let curY, curM;
+
+function initCal() {
+  const n = new Date();
+  curY = n.getFullYear();
+  curM = n.getMonth();
+  renderCal();
+}
+
+function changeMonth(d) {
+  curM += d;
+  if (curM < 0)  { curM=11; curY--; }
+  if (curM > 11) { curM=0;  curY++; }
+  renderCal();
+}
+
+function renderCal() {
+  const data = load();
+  document.getElementById('cal-label').textContent = `${curY}年${curM+1}月`;
+
+  const firstDow = new Date(curY, curM, 1).getDay();
+  const lastDay  = new Date(curY, curM+1, 0).getDate();
+  const today    = new Date();
+  const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  for (let i=0; i<firstDow; i++) {
+    const el = document.createElement('div');
+    el.className = 'day-cell empty';
+    grid.appendChild(el);
+  }
+
+  for (let d=1; d<=lastDay; d++) {
+    const date   = new Date(curY, curM, d);
+    const dow    = date.getDay();
+    const dk     = dateKey(curY, curM, d);
+    const rec    = data.records[dk];
+    const kumon  = isKumon(dow);
+    const isToday= dk === todayKey;
+
+    const cell = document.createElement('div');
+    let cls = 'day-cell';
+    if (kumon)   cls += ' kumon';
+    if (isToday) cls += ' today';
+    if (dow===0) cls += ' sun';
+    if (dow===6) cls += ' sat';
+    cell.className = cls;
+    cell.onclick = () => openModal(curY, curM, d);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'day-num-wrap';
+    const num = document.createElement('div');
+    num.className = 'day-num';
+    num.textContent = d;
+    wrap.appendChild(num);
+    cell.appendChild(wrap);
+
+    if (rec && rec.points > 0) {
+      const badge = document.createElement('div');
+      badge.className = 'day-pts-badge';
+      badge.textContent = `+${rec.points}`;
+      cell.appendChild(badge);
+    }
+    if (kumon) {
+      const dot = document.createElement('div');
+      dot.className = 'kumon-dot';
+      cell.appendChild(dot);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+/* ════════════════════════════════
+   MODAL
+════════════════════════════════ */
+let modalKey = '';
+let modalItems = {};
+let modalIsKumon = false;
+
+function openModal(y, m, d) {
+  const date  = new Date(y, m, d);
+  const dow   = date.getDay();
+  const dk    = dateKey(y, m, d);
+  const data  = load();
+  const WD    = ['日','月','火','水','木','金','土'];
+
+  modalKey    = dk;
+  modalIsKumon= isKumon(dow);
+
+  document.getElementById('m-date').textContent = `${m+1}月${d}日（${WD[dow]}）`;
+  document.getElementById('m-sub').textContent  = modalIsKumon ? '🔵 公文の日' : '📝 ポイントを記録しよう';
+
+  const rec = data.records[dk];
+  if (rec) {
+    modalItems = { ...rec.items };
+  } else {
+    modalItems = {};
+    ITEMS.forEach(k => modalItems[k] = false);
+  }
+
+  // kumon-only sections
+  document.getElementById('sec-kumon').classList.toggle('hidden', !modalIsKumon);
+  document.getElementById('non-kumon-note').classList.toggle('hidden', modalIsKumon);
+  if (!modalIsKumon) {
+    ['attitude','test_math','test_japanese','test_english'].forEach(k => modalItems[k]=false);
+  }
+
+  document.getElementById('btn-del').classList.toggle('hidden', !rec);
+
+  refreshModal();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function refreshModal() {
+  ITEMS.forEach(k => {
+    const row = document.getElementById(`row-${k}`);
+    const box = document.getElementById(`box-${k}`);
+    if (!row) return;
+    const on = !!modalItems[k];
+    row.classList.toggle('checked', on);
+    box.textContent = on ? '✓' : '';
+  });
+  const pts = calcPts(modalItems);
+  document.getElementById('m-total').textContent = pts;
+  document.getElementById('btn-reg').disabled = pts === 0;
+}
+
+function toggle(key) {
+  modalItems[key] = !modalItems[key];
+  refreshModal();
+}
+
+function saveRecord() {
+  const pts = calcPts(modalItems);
+  if (pts === 0) return;
+  const data = load();
+  data.records[modalKey] = { items:{...modalItems}, points:pts };
+  save(data);
+  closeModal();
+  renderCal();
+  refreshHeader();
+  starEffect(pts);
+}
+
+function deleteRecord() {
+  if (!confirm('この日の記録を削除しますか？')) return;
+  const data = load();
+  delete data.records[modalKey];
+  save(data);
+  closeModal();
+  renderCal();
+  refreshHeader();
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function onOverlayClick(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
+
+/* ════════════════════════════════
+   CONSUME
+════════════════════════════════ */
+function refreshConsume() {
+  document.getElementById('use-balance').textContent = balance();
+  document.getElementById('use-pts').value = '';
+  document.getElementById('use-memo').value = '';
+  document.getElementById('use-err').classList.remove('show');
+  document.getElementById('use-pts').classList.remove('err');
+}
+
+function doConsume() {
+  const ptsEl = document.getElementById('use-pts');
+  const errEl = document.getElementById('use-err');
+  const pts   = parseInt(ptsEl.value);
+  const bal   = balance();
+
+  ptsEl.classList.remove('err');
+  errEl.classList.remove('show');
+
+  if (!pts || pts < 1 || isNaN(pts)) {
+    ptsEl.classList.add('err');
+    errEl.textContent = '1以上の数字を入力してね！';
+    errEl.classList.add('show');
+    return;
+  }
+  if (pts > bal) {
+    ptsEl.classList.add('err');
+    errEl.textContent = `ポイントが足りないよ！（残り ${bal}pt）`;
+    errEl.classList.add('show');
+    return;
+  }
+
+  const memo = document.getElementById('use-memo').value.trim() || 'ポイント消費';
+  const data = load();
+  data.consumptions.push({
+    id: Date.now().toString(),
+    date: new Date().toISOString().slice(0,10),
+    points: pts,
+    memo
+  });
+  save(data);
+  refreshHeader();
+  refreshConsume();
+  alert(`${pts}pt つかったよ！\nのこり ${balance()}pt ✨`);
+}
+
+/* ════════════════════════════════
+   HISTORY
+════════════════════════════════ */
+function renderHistory() {
+  const data  = load();
+  const earn  = totalEarned();
+  const spend = totalConsumed();
+  const bal   = earn - spend;
+
+  document.getElementById('hist-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-num">${earn}</div>
+      <div class="stat-label">ごうけい獲得</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🎁</div>
+      <div class="stat-num">${spend}</div>
+      <div class="stat-label">つかった</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💛</div>
+      <div class="stat-num">${bal}</div>
+      <div class="stat-label">のこり</div>
+    </div>`;
+
+  const all = [];
+
+  Object.entries(data.records).forEach(([dk, rec]) => {
+    if (!rec.points) return;
+    const labels = [];
+    const LBL = {
+      hw_math:'算数宿題', hw_japanese:'国語宿題', hw_english:'英語宿題',
+      attitude:'授業態度◎',
+      test_math:'算数💯', test_japanese:'国語💯', test_english:'英語💯'
+    };
+    ITEMS.forEach(k => { if (rec.items[k]) labels.push(LBL[k]); });
+    all.push({ type:'earn', date:dk, pts:rec.points, desc:labels.join('・') });
+  });
+
+  data.consumptions.forEach(c => {
+    all.push({ type:'spend', date:c.date, pts:c.points, desc:c.memo });
+  });
+
+  all.sort((a,b) => b.date.localeCompare(a.date));
+
+  const list = document.getElementById('hist-list');
+  if (!all.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">まだ記録がないよ！<br>カレンダーからポイントを登録しよう🌟</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = all.map(item => {
+    const [,mm,dd] = item.date.split('-');
+    const dl = `${parseInt(mm)}月${parseInt(dd)}日`;
+    const isEarn = item.type === 'earn';
+    return `
+      <div class="h-item">
+        <div class="h-icon ${isEarn?'earn':'spend'}">${isEarn?'⭐':'🎁'}</div>
+        <div class="h-info">
+          <div class="h-date">${dl}</div>
+          <div class="h-desc">${item.desc}</div>
+        </div>
+        <div class="h-pts ${isEarn?'earn':'spend'}">${isEarn?'+':'−'}${item.pts}pt</div>
+      </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════
+   SCREEN SWITCH
+════════════════════════════════ */
+function go(name) {
+  ['cal','use','hist'].forEach(s => {
+    document.getElementById(`screen-${s}`).classList.remove('active');
+    document.getElementById(`nav-${s}`).classList.remove('active');
+  });
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+  if (name==='hist') renderHistory();
+  if (name==='use')  refreshConsume();
+}
+
+/* ════════════════════════════════
+   STAR EFFECT
+════════════════════════════════ */
+function starEffect(pts) {
+  const wrap = document.getElementById('stars');
+  const cx   = window.innerWidth/2;
+  const cy   = window.innerHeight*0.45;
+  const pool = ['⭐','✨','🌟','💫','⚡','🎉'];
+  const n    = Math.min(pts*7, 35);
+
+  for (let i=0; i<n; i++) {
+    setTimeout(() => {
+      const el  = document.createElement('div');
+      el.className = 'star';
+      const ang = Math.random()*Math.PI*2;
+      const r   = 70 + Math.random()*180;
+      const tx  = Math.cos(ang)*r;
+      const ty  = Math.sin(ang)*r - 60;
+      const dur = 0.7 + Math.random()*0.7;
+      el.textContent = pool[Math.floor(Math.random()*pool.length)];
+      el.style.cssText = `left:${cx}px;top:${cy}px;font-size:${14+Math.random()*18}px;--tx:${tx}px;--ty:${ty}px;animation-duration:${dur}s;`;
+      wrap.appendChild(el);
+      setTimeout(()=>el.remove(), dur*1000+100);
+    }, i*25);
+  }
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+initCal();
+refreshHeader();
+</script>
+</body>
+</html>
