@@ -170,6 +170,31 @@
     .sticker-grid-item .stk-wrap { width:58px; height:58px; }
     .sticker-item-date { font-size:9px; color:#90A4AE; font-weight:600; }
     .sticker-item-cond { font-size:8px; color:#B0BEC5; font-weight:600; }
+    .sticker-grid-item { cursor:pointer; }
+    .sticker-grid-item:hover .stk-wrap { transform:scale(1.12); }
+
+    /* ── STICKER DETAIL MODAL ── */
+    .sticker-detail-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,40,.55);
+      z-index:150; align-items:center; justify-content:center;
+      backdrop-filter:blur(4px);
+    }
+    .sticker-detail-overlay.open { display:flex; animation:bgIn .22s ease-out; }
+    .sticker-detail-card {
+      background:white; border-radius:28px; padding:36px 28px 28px;
+      text-align:center; width:280px; max-width:88vw; position:relative;
+      box-shadow:0 16px 48px rgba(0,0,0,.28);
+      animation:stickerDetailIn .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes stickerDetailIn { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+    .sticker-detail-close {
+      position:absolute; top:12px; right:12px; width:32px; height:32px;
+      border-radius:50%; border:none; background:#F5F5F5; font-size:16px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; color:#90A4AE;
+    }
+    .sticker-detail-name { font-size:18px; font-weight:900; color:var(--text); margin-top:16px; }
+    .sticker-detail-date { font-size:13px; color:#90A4AE; font-weight:600; margin-top:6px; }
+    .sticker-detail-cond { font-size:12px; color:#B0BEC5; font-weight:600; margin-top:4px; }
 
     /* ── STICKER SHAPES (5 templates) ── */
     .stk-wrap {
@@ -594,6 +619,17 @@
   </div>
 </div>
 
+<!-- STICKER DETAIL MODAL -->
+<div class="sticker-detail-overlay" id="sticker-detail-overlay" onclick="onStickerDetailOverlayClick(event)">
+  <div class="sticker-detail-card">
+    <button class="sticker-detail-close" onclick="closeStickerDetail()">✕</button>
+    <div id="sticker-detail-sticker"></div>
+    <div class="sticker-detail-name" id="sticker-detail-name"></div>
+    <div class="sticker-detail-date" id="sticker-detail-date"></div>
+    <div class="sticker-detail-cond" id="sticker-detail-cond"></div>
+  </div>
+</div>
+
 <!-- CELEBRATION SCREEN -->
 <div id="celebrate-screen" class="celebrate-screen hidden">
   <div class="celeb-rays"></div>
@@ -878,23 +914,44 @@ function renderHistory(){
 }
 
 /* ════ STICKER BOOK ════ */
+let renderedStickers = [];
+
 function renderStickerBook(){
   const stickers=Object.values(appData.stickers).sort((a,b)=>a.date>b.date?1:-1);
+  renderedStickers=stickers;
   document.getElementById('sticker-count').textContent=`${stickers.length}枚ゲット！`;
   const grid=document.getElementById('sticker-grid');
   if(!stickers.length){
     grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:32px 0"><div style="font-size:48px;margin-bottom:10px">📭</div><div style="font-size:13px;color:#90A4AE;font-weight:600;line-height:1.7">まだシールがないよ！<br>公文をがんばってゲットしよう✨</div></div>`;
     return;
   }
-  grid.innerHTML=stickers.map(s=>{
+  grid.innerHTML=stickers.map((s,idx)=>{
     const[,mm,dd]=s.date.split('-');const dl=`${parseInt(mm)}/${parseInt(dd)}`;
     const inner = s.photoData
       ? `<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
       : `<span class="stk-emoji">${s.emoji}</span>`;
     const frameClass = s.photoData ? `frame-${s.photoFrame||'circle'}` : `stk-${s.tmpl}`;
-    return `<div class="sticker-grid-item"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px">${inner}</div><div class="sticker-item-date">${dl}</div></div>`;
+    return `<div class="sticker-grid-item" onclick="openStickerDetail(${idx})"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px">${inner}</div><div class="sticker-item-date">${dl}</div></div>`;
   }).join('');
 }
+
+function openStickerDetail(idx){
+  const s=renderedStickers[idx];if(!s)return;
+  const inner=s.photoData
+    ?`<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
+    :`<span class="stk-emoji" style="font-size:64px">${s.emoji}</span>`;
+  const frameClass=s.photoData?`frame-${s.photoFrame||'circle'}`:`stk-${s.tmpl}`;
+  document.getElementById('sticker-detail-sticker').innerHTML=
+    `<div class="stk-wrap ${frameClass}" style="width:120px;height:120px;margin:0 auto">${inner}</div>`;
+  const[,mm,dd]=s.date.split('-');
+  document.getElementById('sticker-detail-name').textContent=s.name||'写真シール';
+  document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
+  document.getElementById('sticker-detail-cond').textContent=
+    s.condition==='homework'?'📚 宿題コンプリート':'💯 テスト100点';
+  document.getElementById('sticker-detail-overlay').classList.add('open');
+}
+function closeStickerDetail(){document.getElementById('sticker-detail-overlay').classList.remove('open');}
+function onStickerDetailOverlayClick(e){if(e.target===document.getElementById('sticker-detail-overlay'))closeStickerDetail();}
 
 /* ════ STICKER FLOW ════ */
 function processNextSticker(){
