@@ -525,6 +525,29 @@
         </div>
       </div>
       <div class="kumon-only-note hidden" id="non-kumon-note">📌 授業態度・テスト100点は公文の日（月・木）のみ登録できます</div>
+      <div id="sec-juku" class="hidden">
+        <div class="m-section">
+          <div class="m-sec-title" style="background:linear-gradient(135deg,#E65100,#FF8A65)">🏫 塾の授業態度（金曜日のみ）</div>
+          <div class="chk-row" id="row-juku_attitude" onclick="toggle('juku_attitude')"><div class="chk-box" id="box-juku_attitude"></div><div class="chk-label">集中して最後まで授業を受けられた</div><div class="chk-pt">+1pt</div></div>
+        </div>
+      </div>
+      <div id="sec-veg" class="m-section">
+        <div class="m-sec-title" style="background:linear-gradient(135deg,#2E7D32,#66BB6A)">🥦 野菜チャレンジ</div>
+        <div class="chk-row" id="row-veg_morning" onclick="toggle('veg_morning')"><div class="chk-box" id="box-veg_morning"></div><div class="chk-label">朝ごはんで嫌いな野菜をたべた</div><div class="chk-pt">+0.5pt</div></div>
+        <div class="chk-row" id="row-veg_evening" onclick="toggle('veg_evening')"><div class="chk-box" id="box-veg_evening"></div><div class="chk-label">夕ご飯で嫌いな野菜をたべた</div><div class="chk-pt">+0.5pt</div></div>
+      </div>
+      <div id="sec-dance" class="hidden">
+        <div class="m-section">
+          <div class="m-sec-title" style="background:linear-gradient(135deg,#AD1457,#F06292)">💃 ダンスレッスン（日曜日のみ）</div>
+          <div class="chk-row" id="row-dance" onclick="toggle('dance')"><div class="chk-box" id="box-dance"></div><div class="chk-label">集中してダンスができた</div><div class="chk-pt">+0.5pt</div></div>
+        </div>
+      </div>
+      <div id="sec-chorus" class="hidden">
+        <div class="m-section">
+          <div class="m-sec-title" style="background:linear-gradient(135deg,#6A1B9A,#AB47BC)">🎵 合唱の練習（土・日のみ）</div>
+          <div class="chk-row" id="row-chorus" onclick="toggle('chorus')"><div class="chk-box" id="box-chorus"></div><div class="chk-label">集中して最後まで合唱の練習を頑張れた</div><div class="chk-pt">+0.5pt</div></div>
+        </div>
+      </div>
       <div class="modal-total">
         <div class="modal-total-label">⭐ 今日の合計</div>
         <div><span class="modal-total-num" id="m-total">0</span><span class="modal-total-unit"> pt</span></div>
@@ -669,8 +692,21 @@ let currentStickerCondition = null;
 let selectedCandIdx = null;
 let currentCandidates = [];
 
-const ITEMS = ['hw_math','hw_japanese','hw_english','attitude','test_math','test_japanese','test_english'];
-const ITEM_LABELS = { hw_math:'算数宿題', hw_japanese:'国語宿題', hw_english:'英語宿題', attitude:'授業態度◎', test_math:'算数💯', test_japanese:'国語💯', test_english:'英語💯' };
+const ITEM_PTS = {
+  hw_math:1, hw_japanese:1, hw_english:1,
+  attitude:1, test_math:1, test_japanese:1, test_english:1,
+  juku_attitude:1,
+  veg_morning:0.5, veg_evening:0.5,
+  dance:0.5, chorus:0.5
+};
+const ITEMS = Object.keys(ITEM_PTS);
+const ITEM_LABELS = {
+  hw_math:'算数宿題', hw_japanese:'国語宿題', hw_english:'英語宿題',
+  attitude:'授業態度◎', test_math:'算数💯', test_japanese:'国語💯', test_english:'英語💯',
+  juku_attitude:'塾 授業態度◎',
+  veg_morning:'朝 野菜🥦', veg_evening:'夜 野菜🥦',
+  dance:'ダンス💃', chorus:'合唱🎵'
+};
 
 /* ════ STICKER DATABASE ════ */
 const STDB = [
@@ -777,11 +813,15 @@ function connectDB() {
 function familyRef(){return db.ref(`families/${familyCode}`);}
 
 /* ════ HELPERS ════ */
-function calcPts(items){return ITEMS.filter(k=>items[k]).length;}
+function calcPts(items){return ITEMS.reduce((s,k)=>s+(items[k]?ITEM_PTS[k]:0),0);}
+function fmtPt(v){return v%1===0?String(v):v.toFixed(1);}
 function totalEarned(){return Object.values(appData.records).reduce((s,r)=>s+(r.points||0),0);}
 function totalConsumed(){return Object.values(appData.consumptions).reduce((s,c)=>s+(c.points||0),0);}
 function balance(){return totalEarned()-totalConsumed();}
 function isKumon(dow){return dow===1||dow===4;}
+function isJuku(dow){return dow===5;}
+function isDance(dow){return dow===0;}
+function isChorus(dow){return dow===0||dow===6;}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 
 /* ════ RENDER ALL ════ */
@@ -791,7 +831,7 @@ function renderAll(){
   if(document.getElementById('screen-sticker').classList.contains('active'))renderStickerBook();
   if(document.getElementById('screen-hist').classList.contains('active'))renderHistory();
 }
-function refreshHeader(){document.getElementById('header-pts').textContent=balance();}
+function refreshHeader(){document.getElementById('header-pts').textContent=fmtPt(balance());}
 
 /* ════ CALENDAR ════ */
 function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderCal();}
@@ -816,7 +856,7 @@ function renderCal(){
     const wrap=document.createElement('div');wrap.className='day-num-wrap';
     const num=document.createElement('div');num.className='day-num';num.textContent=d;
     wrap.appendChild(num);cell.appendChild(wrap);
-    if(rec&&rec.points>0){const b=document.createElement('div');b.className='day-pts-badge';b.textContent=`+${rec.points}`;cell.appendChild(b);}
+    if(rec&&rec.points>0){const b=document.createElement('div');b.className='day-pts-badge';b.textContent=`+${fmtPt(rec.points)}`;cell.appendChild(b);}
     if(isKumon(dow)){const dot=document.createElement('div');dot.className='kumon-dot';cell.appendChild(dot);}
     grid.appendChild(cell);
   }
@@ -827,14 +867,26 @@ let modalKey='',modalItems={};
 function openModal(y,m,d){
   const dt=new Date(y,m,d);const dow=dt.getDay();const dk=dateKey(y,m,d);
   const WD=['日','月','火','水','木','金','土'];
-  modalKey=dk;const kumon=isKumon(dow);
+  modalKey=dk;
+  const kumon=isKumon(dow),juku=isJuku(dow),dance=isDance(dow),chorus=isChorus(dow);
   document.getElementById('m-date').textContent=`${m+1}月${d}日（${WD[dow]}）`;
-  document.getElementById('m-sub').textContent=kumon?'🔵 公文の日':'📝 ポイントを記録しよう';
+  const subs=[];
+  if(kumon)subs.push('🔵 公文の日');
+  if(juku)subs.push('🏫 塾の日');
+  if(dance)subs.push('💃 ダンスの日');
+  if(chorus)subs.push('🎵 合唱の日');
+  document.getElementById('m-sub').textContent=subs.length?subs.join('　'):'📝 ポイントを記録しよう';
   const rec=appData.records[dk];
   modalItems={};ITEMS.forEach(k=>modalItems[k]=rec?!!rec.items[k]:false);
   document.getElementById('sec-kumon').classList.toggle('hidden',!kumon);
   document.getElementById('non-kumon-note').classList.toggle('hidden',kumon);
+  document.getElementById('sec-juku').classList.toggle('hidden',!juku);
+  document.getElementById('sec-dance').classList.toggle('hidden',!dance);
+  document.getElementById('sec-chorus').classList.toggle('hidden',!chorus);
   if(!kumon)['attitude','test_math','test_japanese','test_english'].forEach(k=>modalItems[k]=false);
+  if(!juku)modalItems['juku_attitude']=false;
+  if(!dance)modalItems['dance']=false;
+  if(!chorus)modalItems['chorus']=false;
   document.getElementById('btn-del').classList.toggle('hidden',!rec);
   refreshModal();document.getElementById('overlay').classList.add('open');
 }
@@ -845,7 +897,7 @@ function refreshModal(){
     row.classList.toggle('checked',on);box.textContent=on?'✓':'';
   });
   const pts=calcPts(modalItems);
-  document.getElementById('m-total').textContent=pts;
+  document.getElementById('m-total').textContent=fmtPt(pts);
   document.getElementById('btn-reg').disabled=pts===0;
 }
 function toggle(key){modalItems[key]=!modalItems[key];refreshModal();}
@@ -870,7 +922,7 @@ function closeModal(){document.getElementById('overlay').classList.remove('open'
 function onOverlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
 
 /* ════ CONSUME ════ */
-function refreshConsume(){document.getElementById('use-balance').textContent=balance();}
+function refreshConsume(){document.getElementById('use-balance').textContent=fmtPt(balance());}
 function doConsume(){
   const ptsEl=document.getElementById('use-pts');const errEl=document.getElementById('use-err');
   const pts=parseInt(ptsEl.value);const bal=balance();
@@ -893,9 +945,9 @@ function deleteHistoryItem(type,id){
 function renderHistory(){
   const earn=totalEarned();const spend=totalConsumed();const bal=earn-spend;
   document.getElementById('hist-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-num">${earn}</div><div class="stat-label">ごうけい獲得</div></div>
-    <div class="stat-card"><div class="stat-icon">🎁</div><div class="stat-num">${spend}</div><div class="stat-label">つかった</div></div>
-    <div class="stat-card"><div class="stat-icon">💛</div><div class="stat-num">${bal}</div><div class="stat-label">のこり</div></div>`;
+    <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-num">${fmtPt(earn)}</div><div class="stat-label">ごうけい獲得</div></div>
+    <div class="stat-card"><div class="stat-icon">🎁</div><div class="stat-num">${fmtPt(spend)}</div><div class="stat-label">つかった</div></div>
+    <div class="stat-card"><div class="stat-icon">💛</div><div class="stat-num">${fmtPt(bal)}</div><div class="stat-label">のこり</div></div>`;
   const all=[];
   Object.entries(appData.records).forEach(([dk,rec])=>{
     if(!rec||!rec.points)return;
@@ -909,7 +961,7 @@ function renderHistory(){
   list.innerHTML=all.map(item=>{
     const[,mm,dd]=item.date.split('-');const dl=`${parseInt(mm)}月${parseInt(dd)}日`;
     const isE=item.type==='earn';
-    return `<div class="h-item"><div class="h-icon ${isE?'earn':'spend'}">${isE?'⭐':'🎁'}</div><div class="h-info"><div class="h-date">${dl}</div><div class="h-desc">${item.desc}</div></div><div class="h-pts ${isE?'earn':'spend'}">${isE?'+':'−'}${item.pts}pt</div><button class="del-btn" onclick="deleteHistoryItem('${item.type}','${item.id}')">🗑️</button></div>`;
+    return `<div class="h-item"><div class="h-icon ${isE?'earn':'spend'}">${isE?'⭐':'🎁'}</div><div class="h-info"><div class="h-date">${dl}</div><div class="h-desc">${item.desc}</div></div><div class="h-pts ${isE?'earn':'spend'}">${isE?'+':'−'}${fmtPt(item.pts)}pt</div><button class="del-btn" onclick="deleteHistoryItem('${item.type}','${item.id}')">🗑️</button></div>`;
   }).join('');
 }
 
@@ -946,8 +998,8 @@ function openStickerDetail(idx){
   const[,mm,dd]=s.date.split('-');
   document.getElementById('sticker-detail-name').textContent=s.name||'写真シール';
   document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
-  document.getElementById('sticker-detail-cond').textContent=
-    s.condition==='homework'?'📚 宿題コンプリート':'💯 テスト100点';
+  const condMap={homework:'📚 宿題コンプリート',test:'💯 テスト100点',juku:'🏫 塾 授業態度',dance:'💃 ダンスレッスン',chorus:'🎵 合唱の練習',veg:'🥦 野菜チャレンジ'};
+  document.getElementById('sticker-detail-cond').textContent=condMap[s.condition]||'🌟 すごい！';
   document.getElementById('sticker-detail-overlay').classList.add('open');
 }
 function closeStickerDetail(){document.getElementById('sticker-detail-overlay').classList.remove('open');}
