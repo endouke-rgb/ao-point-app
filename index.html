@@ -356,6 +356,95 @@
     .star{position:absolute;animation:starFly linear forwards;will-change:transform,opacity}
     @keyframes starFly{0%{transform:translate(0,0) scale(.4) rotate(0deg);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(1.6) rotate(720deg);opacity:0}}
 
+    /* ── MINI GAME SELECT ── */
+    .mg-game-btn {
+      background:rgba(255,255,255,.15); border:2.5px solid rgba(255,255,255,.45);
+      border-radius:22px; padding:22px 20px; color:white; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:7px;
+      font-family:inherit; width:140px; transition:all .2s; position:relative; z-index:1;
+    }
+    .mg-game-btn:hover{background:rgba(255,255,255,.28);transform:scale(1.05);}
+    .mg-game-icon{font-size:48px;line-height:1;}
+    .mg-game-name{font-size:17px;font-weight:900;}
+    .mg-game-desc{font-size:11px;color:rgba(255,255,255,.75);text-align:center;}
+
+    /* ── SLOT MACHINE ── */
+    .slot-machine{
+      background:rgba(0,0,0,.35); border:3px solid rgba(255,215,0,.6);
+      border-radius:24px; padding:20px 24px; position:relative; z-index:1;
+    }
+    .slot-reels{display:flex;align-items:center;gap:10px;}
+    .slot-reel{
+      width:84px; height:84px; background:white; border-radius:16px;
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+      border:3px solid #E0E0E0; transition:border-color .2s;
+    }
+    .slot-reel.stopped{border-color:#FFD700;box-shadow:0 0 12px rgba(255,215,0,.5);}
+    .slot-symbol{font-size:50px;line-height:1;display:block;}
+    .slot-sep{color:rgba(255,215,0,.7);font-size:28px;font-weight:900;}
+
+    /* ── SCRATCH CARD ── */
+    .scratch-grid{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+      position:relative; z-index:1;
+    }
+    .scratch-cell{
+      width:84px; height:84px; border-radius:16px; display:flex;
+      align-items:center; justify-content:center; font-size:38px;
+      cursor:pointer; position:relative; overflow:hidden;
+      background:white; border:3px solid rgba(255,255,255,.3);
+      transition:transform .15s;
+    }
+    .scratch-cell:active{transform:scale(.93);}
+    .scratch-cell.disabled{cursor:default;opacity:.7;}
+    .scratch-cover{
+      position:absolute; inset:0; background:linear-gradient(135deg,#9E9E9E,#EEEEEE);
+      border-radius:13px; display:flex; align-items:center; justify-content:center;
+      font-size:32px; transition:opacity .35s, transform .35s;
+    }
+    .scratch-cell.revealed .scratch-cover{opacity:0;transform:scale(0) rotate(20deg);}
+
+    /* ── SPECIAL STICKER SELECT ── */
+    .special-sticker-grid{
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+      padding:0 8px; max-width:420px; position:relative; z-index:1;
+    }
+    .sp-sticker-item{
+      display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer;
+    }
+    .sp-sticker-wrap{
+      width:64px; height:64px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      border:3px solid #FFD700;
+      box-shadow:0 0 0 2px rgba(255,215,0,.35), 0 4px 12px rgba(0,0,0,.3);
+      transition:transform .2s, box-shadow .2s;
+    }
+    .sp-sticker-item.selected .sp-sticker-wrap{
+      box-shadow:0 0 0 4px #FFD700, 0 6px 20px rgba(255,215,0,.6);
+      transform:scale(1.15);
+    }
+    .sp-sticker-name{
+      font-size:8px; font-weight:700; color:rgba(255,255,255,.9);
+      text-align:center; line-height:1.3; max-width:64px;
+    }
+
+    /* ── GAME RESULT TEXT ── */
+    .game-result-win{
+      font-size:26px; font-weight:900; color:#FFE082; text-align:center; line-height:1.4;
+      animation:bigTextPop .5s cubic-bezier(.34,1.56,.64,1);
+      position:relative; z-index:1;
+    }
+    .game-result-lose{
+      font-size:17px; font-weight:700; color:rgba(255,255,255,.88);
+      text-align:center; line-height:1.6; position:relative; z-index:1;
+    }
+
+    /* ── SPECIAL STICKER FRAME in album ── */
+    .stk-wrap.is-special{
+      border:3px solid #FFD700 !important;
+      box-shadow:0 0 0 2px rgba(255,215,0,.5), 0 4px 12px rgba(0,0,0,.18) !important;
+    }
+
     .hidden{display:none!important}
   </style>
 </head>
@@ -578,6 +667,61 @@
   </div>
 </div>
 
+<!-- MINI GAME SELECT SCREEN -->
+<div id="minigame-select-screen" class="celebrate-screen hidden">
+  <div class="celeb-rays"></div>
+  <div style="font-size:30px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:6px;animation:bigTextPop .5s cubic-bezier(.34,1.56,.64,1)">どっちでチャレンジ？</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:32px;animation:fadeUp .5s ease-out .2s both">当たりが出たら✨スペシャルシール✨ゲット！</div>
+  <div style="display:flex;gap:16px;position:relative;z-index:1;animation:fadeUp .5s ease-out .4s both">
+    <button class="mg-game-btn" onclick="showSlot()">
+      <span class="mg-game-icon">🎰</span>
+      <div class="mg-game-name">スロット</div>
+      <div class="mg-game-desc">3つそろえよう！</div>
+    </button>
+    <button class="mg-game-btn" onclick="showScratch()">
+      <span class="mg-game-icon">🎫</span>
+      <div class="mg-game-name">スクラッチ</div>
+      <div class="mg-game-desc">削って当てよう！</div>
+    </button>
+  </div>
+</div>
+
+<!-- SLOT SCREEN -->
+<div id="slot-screen" class="celebrate-screen hidden">
+  <div class="celeb-rays"></div>
+  <div style="font-size:24px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:24px">🎰 スロット</div>
+  <div class="slot-machine">
+    <div class="slot-reels">
+      <div class="slot-reel" id="reel-0"><span class="slot-symbol" id="sym-0">🍬</span></div>
+      <div class="slot-sep">｜</div>
+      <div class="slot-reel" id="reel-1"><span class="slot-symbol" id="sym-1">🍭</span></div>
+      <div class="slot-sep">｜</div>
+      <div class="slot-reel" id="reel-2"><span class="slot-symbol" id="sym-2">🍫</span></div>
+    </div>
+  </div>
+  <button class="celeb-btn" id="slot-spin-btn" onclick="rollSlot()" style="margin-top:32px">まわす！ 🎰</button>
+  <div id="slot-result" class="hidden" style="margin-top:16px;text-align:center"></div>
+</div>
+
+<!-- SCRATCH SCREEN -->
+<div id="scratch-screen" class="celebrate-screen hidden">
+  <div class="celeb-rays"></div>
+  <div style="font-size:24px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:6px">🎫 スクラッチくじ</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:20px">3マスこすってみよう！</div>
+  <div class="scratch-grid" id="scratch-grid"></div>
+  <div id="scratch-remain" style="color:rgba(255,255,255,.9);font-size:14px;font-weight:700;margin-top:14px;position:relative;z-index:1">あと3まいこすれる</div>
+  <div id="scratch-result" class="hidden" style="margin-top:14px;text-align:center"></div>
+</div>
+
+<!-- SPECIAL STICKER SELECT SCREEN -->
+<div id="special-sticker-screen" class="celebrate-screen hidden" style="overflow-y:auto;justify-content:flex-start;padding:40px 16px 80px">
+  <div class="celeb-rays"></div>
+  <div style="font-size:26px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:4px;animation:bigTextPop .5s cubic-bezier(.34,1.56,.64,1)">⭐ スペシャルシール！</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:20px;animation:fadeUp .4s ease-out .2s both">好きなシールを1つえらんでね✨</div>
+  <div class="special-sticker-grid" id="special-sticker-grid"></div>
+  <button class="celeb-btn" id="btn-confirm-special" onclick="confirmSpecialSticker()" disabled style="margin-top:24px;position:relative;z-index:1">このシールにする！ 🎉</button>
+</div>
+
 <!-- STICKER SEARCH MODAL -->
 <div class="overlay" id="sticker-search-overlay">
   <div class="sheet">
@@ -665,7 +809,7 @@
   <div class="celeb-sub-text" id="celeb-sub-text">
     <div class="celeb-condition-badge" id="celeb-badge">🌟 すごい！</div>
   </div>
-  <button class="celeb-btn" onclick="openStickerSearch()">どんなシールがいい？ →</button>
+  <button class="celeb-btn" onclick="showMiniGameSelect()">ゲームでシールをもらおう！ 🎮</button>
 </div>
 
 <script>
@@ -982,8 +1126,9 @@ function renderStickerBook(){
     const inner = s.photoData
       ? `<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
       : `<span class="stk-emoji">${s.emoji}</span>`;
-    const frameClass = s.photoData ? `frame-${s.photoFrame||'circle'}` : `stk-${s.tmpl}`;
-    return `<div class="sticker-grid-item" onclick="openStickerDetail(${idx})"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px">${inner}</div><div class="sticker-item-date">${dl}</div></div>`;
+    const frameClass = s.photoData ? `frame-${s.photoFrame||'circle'}` : (s.isSpecial ? `stk-${s.tmpl} is-special` : `stk-${s.tmpl}`);
+    const spStyle = s.isSpecial && s.specialId != null ? `background:linear-gradient(135deg,${SPECIAL_STICKERS[s.specialId].grad[0]},${SPECIAL_STICKERS[s.specialId].grad[1]})` : '';
+    return `<div class="sticker-grid-item" onclick="openStickerDetail(${idx})"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px;${spStyle}">${inner}</div><div class="sticker-item-date">${dl}</div>${s.isSpecial?'<div class="sticker-item-cond" style="color:#F9A825">★特別</div>':''}</div>`;
   }).join('');
 }
 
@@ -992,9 +1137,10 @@ function openStickerDetail(idx){
   const inner=s.photoData
     ?`<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
     :`<span class="stk-emoji" style="font-size:64px">${s.emoji}</span>`;
-  const frameClass=s.photoData?`frame-${s.photoFrame||'circle'}`:`stk-${s.tmpl}`;
+  const frameClass=s.photoData?`frame-${s.photoFrame||'circle'}`:(s.isSpecial?`stk-${s.tmpl} is-special`:`stk-${s.tmpl}`);
+  const spStyle=s.isSpecial&&s.specialId!=null?`background:linear-gradient(135deg,${SPECIAL_STICKERS[s.specialId].grad[0]},${SPECIAL_STICKERS[s.specialId].grad[1]})`:'';
   document.getElementById('sticker-detail-sticker').innerHTML=
-    `<div class="stk-wrap ${frameClass}" style="width:120px;height:120px;margin:0 auto">${inner}</div>`;
+    `<div class="stk-wrap ${frameClass}" style="width:120px;height:120px;margin:0 auto;${spStyle}">${inner}</div>`;
   const[,mm,dd]=s.date.split('-');
   document.getElementById('sticker-detail-name').textContent=s.name||'写真シール';
   document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
@@ -1004,6 +1150,180 @@ function openStickerDetail(idx){
 }
 function closeStickerDetail(){document.getElementById('sticker-detail-overlay').classList.remove('open');}
 function onStickerDetailOverlayClick(e){if(e.target===document.getElementById('sticker-detail-overlay'))closeStickerDetail();}
+
+/* ════ MINI GAMES ════ */
+const SLOT_SYMBOLS = ['🍬','🍭','🍫','🍡','🍩'];
+const SPECIAL_STICKERS = [
+  {emoji:'💝', name:'キャンディハート', grad:['#FF6B9D','#C41E3A']},
+  {emoji:'🍋', name:'レモンドロップ',   grad:['#FFE03B','#66BB6A']},
+  {emoji:'🍒', name:'チェリーボム',     grad:['#E53935','#880E4F']},
+  {emoji:'🍇', name:'グレープソーダ',   grad:['#9C27B0','#1565C0']},
+  {emoji:'🍓', name:'ストロベリー',     grad:['#E53935','#EF9A9A']},
+  {emoji:'🫐', name:'ブルーベリー',     grad:['#1565C0','#9C27B0']},
+  {emoji:'🍊', name:'オレンジスパーク', grad:['#F57C00','#FDD835']},
+  {emoji:'🌿', name:'ミントアイス',     grad:['#2E7D32','#A5D6A7']},
+  {emoji:'⭐', name:'チョコスター',     grad:['#6D4C41','#FDD835']},
+  {emoji:'🌈', name:'レインボー',       grad:['#E53935','#AB47BC']},
+];
+
+let miniGameWin = false;
+let scratchData = [];
+let scratchRevealCount = 0;
+let scratchRevealedIdxs = [];
+let slotRunning = false;
+let selectedSpecialIdx = null;
+
+function showMiniGameSelect() {
+  document.getElementById('celebrate-screen').classList.add('hidden');
+  document.getElementById('minigame-select-screen').classList.remove('hidden');
+}
+
+/* ── SLOT ── */
+function showSlot() {
+  document.getElementById('minigame-select-screen').classList.add('hidden');
+  miniGameWin = Math.random() < 0.33;
+  slotRunning = false;
+  const btn = document.getElementById('slot-spin-btn');
+  btn.disabled = false; btn.textContent = 'まわす！ 🎰';
+  document.getElementById('slot-result').classList.add('hidden');
+  [0,1,2].forEach(i => {
+    document.getElementById(`sym-${i}`).textContent = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+    document.getElementById(`reel-${i}`).classList.remove('stopped');
+  });
+  document.getElementById('slot-screen').classList.remove('hidden');
+}
+
+function rollSlot() {
+  if (slotRunning) return;
+  slotRunning = true;
+  const btn = document.getElementById('slot-spin-btn');
+  btn.disabled = true; btn.textContent = '…🎰';
+  const winSym = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+  let results;
+  if (miniGameWin) {
+    results = [winSym, winSym, winSym];
+  } else {
+    do {
+      results = [0,1,2].map(()=>SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)]);
+    } while (results[0]===results[1] && results[1]===results[2]);
+  }
+  const ivs = [0,1,2].map(i => setInterval(()=>{
+    document.getElementById(`sym-${i}`).textContent = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+  }, 80));
+  [0,1,2].forEach(i => {
+    setTimeout(()=>{
+      clearInterval(ivs[i]);
+      document.getElementById(`sym-${i}`).textContent = results[i];
+      document.getElementById(`reel-${i}`).classList.add('stopped');
+      if (navigator.vibrate) navigator.vibrate(80);
+      if (i === 2) setTimeout(()=>showGameResult('slot', miniGameWin), 500);
+    }, 900*(i+1));
+  });
+}
+
+/* ── SCRATCH ── */
+function showScratch() {
+  document.getElementById('minigame-select-screen').classList.add('hidden');
+  miniGameWin = Math.random() < 0.33;
+  if (miniGameWin) {
+    const ws = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+    scratchData = Array(9).fill(ws);
+  } else {
+    const pool = [...SLOT_SYMBOLS, ...SLOT_SYMBOLS, 'x'].slice(0,9);
+    scratchData = pool.sort(()=>Math.random()-.5);
+    // ensure no symbol appears 3+ times
+    const cnt = {};
+    scratchData.forEach(s=>{cnt[s]=(cnt[s]||0)+1;});
+    scratchData = scratchData.map(s=>{
+      if((cnt[s]||0)>2){cnt[s]--;const alt=SLOT_SYMBOLS.find(a=>a!==s&&(cnt[a]||0)<2);if(alt){cnt[alt]=(cnt[alt]||0)+1;return alt;}}
+      return s;
+    });
+  }
+  scratchRevealCount = 0;
+  scratchRevealedIdxs = [];
+  document.getElementById('scratch-remain').textContent = 'あと3まいこすれる';
+  document.getElementById('scratch-result').classList.add('hidden');
+  const grid = document.getElementById('scratch-grid');
+  grid.innerHTML = scratchData.map((sym,i)=>`
+    <div class="scratch-cell" id="sc-${i}" onclick="revealScratch(${i})">
+      <span>${sym}</span>
+      <div class="scratch-cover">🪙</div>
+    </div>`).join('');
+  document.getElementById('scratch-screen').classList.remove('hidden');
+}
+
+function revealScratch(idx) {
+  if (scratchRevealCount >= 3 || scratchRevealedIdxs.includes(idx)) return;
+  scratchRevealedIdxs.push(idx);
+  scratchRevealCount++;
+  document.getElementById(`sc-${idx}`).classList.add('revealed');
+  if (navigator.vibrate) navigator.vibrate(50);
+  const rem = 3 - scratchRevealCount;
+  document.getElementById('scratch-remain').textContent = rem > 0 ? `あと${rem}まいこすれる` : '';
+  if (rem === 0) {
+    document.querySelectorAll('.scratch-cell:not(.revealed)').forEach(c=>c.classList.add('disabled'));
+    setTimeout(()=>showGameResult('scratch', miniGameWin), 700);
+  }
+}
+
+/* ── GAME RESULT (shared) ── */
+function showGameResult(gameType, win) {
+  const resultEl = document.getElementById(`${gameType}-result`);
+  resultEl.classList.remove('hidden');
+  if (win) {
+    resultEl.innerHTML = `<div class="game-result-win">やったー！🎉<br>スペシャルシールゲット！</div>`;
+    startEmojiRain(document.getElementById(`${gameType}-screen`));
+    if (navigator.vibrate) navigator.vibrate([300,100,300,100,500]);
+    setTimeout(()=>{
+      document.getElementById(`${gameType}-screen`).classList.add('hidden');
+      showSpecialStickerSelect();
+    }, 2200);
+  } else {
+    resultEl.innerHTML = `<div class="game-result-lose">ざんねん… でも<br>通常シールをもらえるよ！🎁</div>`;
+    setTimeout(()=>{
+      document.getElementById(`${gameType}-screen`).classList.add('hidden');
+      openStickerSearch();
+    }, 1800);
+  }
+}
+
+/* ── SPECIAL STICKER SELECT ── */
+function showSpecialStickerSelect() {
+  selectedSpecialIdx = null;
+  document.getElementById('btn-confirm-special').disabled = true;
+  document.getElementById('special-sticker-grid').innerHTML = SPECIAL_STICKERS.map((s,i)=>`
+    <div class="sp-sticker-item" id="sp-${i}" onclick="selectSpecial(${i})"
+         style="animation:stickerDetailIn .4s cubic-bezier(.34,1.56,.64,1) ${(i*0.06).toFixed(2)}s both">
+      <div class="sp-sticker-wrap" style="background:linear-gradient(135deg,${s.grad[0]},${s.grad[1]})">
+        <span style="font-size:32px">${s.emoji}</span>
+      </div>
+      <div class="sp-sticker-name">${s.name}</div>
+    </div>`).join('');
+  document.getElementById('special-sticker-screen').classList.remove('hidden');
+}
+
+function selectSpecial(idx) {
+  document.querySelectorAll('.sp-sticker-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById(`sp-${idx}`).classList.add('selected');
+  selectedSpecialIdx = idx;
+  document.getElementById('btn-confirm-special').disabled = false;
+}
+
+function confirmSpecialSticker() {
+  if (selectedSpecialIdx === null) return;
+  const s = SPECIAL_STICKERS[selectedSpecialIdx];
+  const id = Date.now().toString();
+  const date = new Date().toISOString().slice(0,10);
+  familyRef().child(`stickers/${id}`).set({
+    date, emoji:s.emoji, name:s.name, tmpl:0,
+    condition:currentStickerCondition, isSpecial:true, specialId:selectedSpecialIdx
+  });
+  document.getElementById('special-sticker-screen').classList.add('hidden');
+  selectedSpecialIdx = null;
+  starEffect(5);
+  if (pendingStickers.length > 0) setTimeout(processNextSticker, 800);
+  setTimeout(()=>go('sticker'), 400);
+}
 
 /* ════ STICKER FLOW ════ */
 function processNextSticker(){
