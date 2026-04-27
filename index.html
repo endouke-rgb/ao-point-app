@@ -639,6 +639,12 @@
           <div class="chk-row" id="row-chorus" onclick="toggle('chorus')"><div class="chk-box" id="box-chorus"></div><div class="chk-label">集中して最後まで合唱の練習を頑張れた</div><div class="chk-pt">+0.5pt</div></div>
         </div>
       </div>
+      <div id="sec-school" class="hidden">
+        <div class="m-section">
+          <div class="m-sec-title" style="background:linear-gradient(135deg,#F57F17,#FFB300)">📝 学校のテスト（月〜金のみ）</div>
+          <div class="chk-row" id="row-school_test" onclick="toggle('school_test')"><div class="chk-box" id="box-school_test"></div><div class="chk-label">学校のテストで100点を取った</div><div class="chk-pt">+1pt</div></div>
+        </div>
+      </div>
       <div class="modal-total">
         <div class="modal-total-label">⭐ 今日の合計</div>
         <div><span class="modal-total-num" id="m-total">0</span><span class="modal-total-unit"> pt</span></div>
@@ -841,7 +847,7 @@ let currentCandidates = [];
 const ITEM_PTS = {
   hw_math:1, hw_japanese:1, hw_english:1,
   attitude:1, test_math:1, test_japanese:1, test_english:1,
-  juku_attitude:1,
+  juku_attitude:1, school_test:1,
   veg_morning:0.5, veg_evening:0.5,
   dance:0.5, chorus:0.5
 };
@@ -849,7 +855,7 @@ const ITEMS = Object.keys(ITEM_PTS);
 const ITEM_LABELS = {
   hw_math:'算数宿題', hw_japanese:'国語宿題', hw_english:'英語宿題',
   attitude:'授業態度◎', test_math:'算数💯', test_japanese:'国語💯', test_english:'英語💯',
-  juku_attitude:'塾 授業態度◎',
+  juku_attitude:'塾 授業態度◎', school_test:'学校テスト💯',
   veg_morning:'朝 野菜🥦', veg_evening:'夜 野菜🥦',
   dance:'ダンス💃', chorus:'合唱🎵'
 };
@@ -968,6 +974,7 @@ function isKumon(dow){return dow===1||dow===4;}
 function isJuku(dow){return dow===5;}
 function isDance(dow){return dow===0;}
 function isChorus(dow){return dow===0||dow===6;}
+function isSchoolDay(dow){return dow>=1&&dow<=5;}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 
 /* ════ RENDER ALL ════ */
@@ -1014,7 +1021,7 @@ function openModal(y,m,d){
   const dt=new Date(y,m,d);const dow=dt.getDay();const dk=dateKey(y,m,d);
   const WD=['日','月','火','水','木','金','土'];
   modalKey=dk;
-  const kumon=isKumon(dow),juku=isJuku(dow),dance=isDance(dow),chorus=isChorus(dow);
+  const kumon=isKumon(dow),juku=isJuku(dow),dance=isDance(dow),chorus=isChorus(dow),school=isSchoolDay(dow);
   document.getElementById('m-date').textContent=`${m+1}月${d}日（${WD[dow]}）`;
   const subs=[];
   if(kumon)subs.push('🔵 公文の日');
@@ -1029,10 +1036,12 @@ function openModal(y,m,d){
   document.getElementById('sec-juku').classList.toggle('hidden',!juku);
   document.getElementById('sec-dance').classList.toggle('hidden',!dance);
   document.getElementById('sec-chorus').classList.toggle('hidden',!chorus);
+  document.getElementById('sec-school').classList.toggle('hidden',!school);
   if(!kumon)['attitude','test_math','test_japanese','test_english'].forEach(k=>modalItems[k]=false);
   if(!juku)modalItems['juku_attitude']=false;
   if(!dance)modalItems['dance']=false;
   if(!chorus)modalItems['chorus']=false;
+  if(!school)modalItems['school_test']=false;
   document.getElementById('btn-del').classList.toggle('hidden',!rec);
   refreshModal();document.getElementById('overlay').classList.add('open');
 }
@@ -1059,6 +1068,9 @@ function saveRecord(){
   const newTest=modalItems.test_math||modalItems.test_japanese||modalItems.test_english;
   const prevTest=prevItems.test_math||prevItems.test_japanese||prevItems.test_english;
   if(newTest&&!prevTest)pendingStickers.push('test');
+  const newVeg=modalItems.veg_morning&&modalItems.veg_evening;
+  const prevVeg=prevItems.veg_morning&&prevItems.veg_evening;
+  if(newVeg&&!prevVeg)pendingStickers.push('veg');
   familyRef().child(`records/${modalKey}`).set({items:{...modalItems},points:pts});
   closeModal();starEffect(pts);
   if(pendingStickers.length>0)setTimeout(processNextSticker,1200);
@@ -1158,7 +1170,7 @@ function openStickerDetail(idx){
   const[,mm,dd]=s.date.split('-');
   document.getElementById('sticker-detail-name').textContent=s.name||'写真シール';
   document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
-  const condMap={homework:'📚 宿題コンプリート',test:'💯 テスト100点',juku:'🏫 塾 授業態度',dance:'💃 ダンスレッスン',chorus:'🎵 合唱の練習',veg:'🥦 野菜チャレンジ'};
+  const condMap={homework:'📚 宿題コンプリート',test:'💯 テスト100点',juku:'🏫 塾 授業態度',dance:'💃 ダンスレッスン',chorus:'🎵 合唱の練習',veg:'🥦 野菜チャレンジ達成'};
   document.getElementById('sticker-detail-cond').textContent=condMap[s.condition]||'🌟 すごい！';
   document.getElementById('sticker-detail-overlay').classList.add('open');
 }
@@ -1364,6 +1376,9 @@ function showCelebration(condition){
   if(condition==='homework'){
     badge.textContent='📚 算数・国語・英語の宿題を全部終わらせた！';
     preview.innerHTML=`<div class="stk-wrap stk-2" style="width:100px;height:100px"><span class="stk-emoji" style="font-size:52px">📚</span></div>`;
+  } else if(condition==='veg'){
+    badge.textContent='🥦 朝も夜も野菜チャレンジ達成！';
+    preview.innerHTML=`<div class="stk-wrap stk-3" style="width:100px;height:100px"><span class="stk-emoji" style="font-size:52px">🥦</span></div>`;
   } else {
     badge.textContent='💯 授業のテストで100点をとった！';
     preview.innerHTML=`<div class="stk-wrap stk-0" style="width:100px;height:100px"><span class="stk-emoji" style="font-size:52px">💯</span></div>`;
