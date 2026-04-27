@@ -406,26 +406,28 @@
 
     /* ── SPECIAL STICKER SELECT ── */
     .special-sticker-grid{
-      display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
-      padding:0 8px; max-width:420px; position:relative; z-index:1;
+      display:grid; grid-template-columns:repeat(5,1fr); gap:10px;
+      padding:0 4px; max-width:420px; position:relative; z-index:1;
     }
     .sp-sticker-item{
       display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer;
     }
     .sp-sticker-wrap{
-      width:64px; height:64px; border-radius:50%;
+      width:60px; height:60px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
+      background:white; overflow:hidden;
       border:3px solid #FFD700;
       box-shadow:0 0 0 2px rgba(255,215,0,.35), 0 4px 12px rgba(0,0,0,.3);
       transition:transform .2s, box-shadow .2s;
     }
+    .sp-sticker-wrap img{ width:100%; height:100%; object-fit:contain; padding:4px; }
     .sp-sticker-item.selected .sp-sticker-wrap{
       box-shadow:0 0 0 4px #FFD700, 0 6px 20px rgba(255,215,0,.6);
       transform:scale(1.15);
     }
     .sp-sticker-name{
       font-size:8px; font-weight:700; color:rgba(255,255,255,.9);
-      text-align:center; line-height:1.3; max-width:64px;
+      text-align:center; line-height:1.3; max-width:60px;
     }
 
     /* ── GAME RESULT TEXT ── */
@@ -1123,24 +1125,36 @@ function renderStickerBook(){
   }
   grid.innerHTML=stickers.map((s,idx)=>{
     const[,mm,dd]=s.date.split('-');const dl=`${parseInt(mm)}/${parseInt(dd)}`;
-    const inner = s.photoData
-      ? `<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
-      : `<span class="stk-emoji">${s.emoji}</span>`;
-    const frameClass = s.photoData ? `frame-${s.photoFrame||'circle'}` : (s.isSpecial ? `stk-${s.tmpl} is-special` : `stk-${s.tmpl}`);
-    const spStyle = s.isSpecial && s.specialId != null ? `background:linear-gradient(135deg,${SPECIAL_STICKERS[s.specialId].grad[0]},${SPECIAL_STICKERS[s.specialId].grad[1]})` : '';
+    let inner, frameClass, spStyle='';
+    if(s.specialImg){
+      inner=`<img src="${s.specialImg}" alt="${s.name||'スペシャル'}" style="width:100%;height:100%;object-fit:contain;padding:3px">`;
+      frameClass='is-special'; spStyle='background:white;border-radius:50%;overflow:hidden;';
+    } else if(s.photoData){
+      inner=`<img class="stk-photo" src="${s.photoData}" alt="写真シール">`;
+      frameClass=`frame-${s.photoFrame||'circle'}`;
+    } else {
+      inner=`<span class="stk-emoji">${s.emoji||'⭐'}</span>`;
+      frameClass=`stk-${s.tmpl||0}${s.isSpecial?' is-special':''}`;
+    }
     return `<div class="sticker-grid-item" onclick="openStickerDetail(${idx})"><div class="stk-wrap ${frameClass}" style="width:58px;height:58px;${spStyle}">${inner}</div><div class="sticker-item-date">${dl}</div>${s.isSpecial?'<div class="sticker-item-cond" style="color:#F9A825">★特別</div>':''}</div>`;
   }).join('');
 }
 
 function openStickerDetail(idx){
   const s=renderedStickers[idx];if(!s)return;
-  const inner=s.photoData
-    ?`<img class="stk-photo" src="${s.photoData}" alt="写真シール">`
-    :`<span class="stk-emoji" style="font-size:64px">${s.emoji}</span>`;
-  const frameClass=s.photoData?`frame-${s.photoFrame||'circle'}`:(s.isSpecial?`stk-${s.tmpl} is-special`:`stk-${s.tmpl}`);
-  const spStyle=s.isSpecial&&s.specialId!=null?`background:linear-gradient(135deg,${SPECIAL_STICKERS[s.specialId].grad[0]},${SPECIAL_STICKERS[s.specialId].grad[1]})`:'';
+  let inner2, frameClass2, spStyle2='';
+  if(s.specialImg){
+    inner2=`<img src="${s.specialImg}" alt="${s.name||'スペシャル'}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
+    frameClass2='is-special'; spStyle2='background:white;border-radius:50%;overflow:hidden;';
+  } else if(s.photoData){
+    inner2=`<img class="stk-photo" src="${s.photoData}" alt="写真シール">`;
+    frameClass2=`frame-${s.photoFrame||'circle'}`;
+  } else {
+    inner2=`<span class="stk-emoji" style="font-size:64px">${s.emoji||'⭐'}</span>`;
+    frameClass2=`stk-${s.tmpl||0}${s.isSpecial?' is-special':''}`;
+  }
   document.getElementById('sticker-detail-sticker').innerHTML=
-    `<div class="stk-wrap ${frameClass}" style="width:120px;height:120px;margin:0 auto;${spStyle}">${inner}</div>`;
+    `<div class="stk-wrap ${frameClass2}" style="width:120px;height:120px;margin:0 auto;${spStyle2}">${inner2}</div>`;
   const[,mm,dd]=s.date.split('-');
   document.getElementById('sticker-detail-name').textContent=s.name||'写真シール';
   document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
@@ -1153,17 +1167,25 @@ function onStickerDetailOverlayClick(e){if(e.target===document.getElementById('s
 
 /* ════ MINI GAMES ════ */
 const SLOT_SYMBOLS = ['🍬','🍭','🍫','🍡','🍩'];
-const SPECIAL_STICKERS = [
-  {emoji:'💝', name:'キャンディハート', grad:['#FF6B9D','#C41E3A']},
-  {emoji:'🍋', name:'レモンドロップ',   grad:['#FFE03B','#66BB6A']},
-  {emoji:'🍒', name:'チェリーボム',     grad:['#E53935','#880E4F']},
-  {emoji:'🍇', name:'グレープソーダ',   grad:['#9C27B0','#1565C0']},
-  {emoji:'🍓', name:'ストロベリー',     grad:['#E53935','#EF9A9A']},
-  {emoji:'🫐', name:'ブルーベリー',     grad:['#1565C0','#9C27B0']},
-  {emoji:'🍊', name:'オレンジスパーク', grad:['#F57C00','#FDD835']},
-  {emoji:'🌿', name:'ミントアイス',     grad:['#2E7D32','#A5D6A7']},
-  {emoji:'⭐', name:'チョコスター',     grad:['#6D4C41','#FDD835']},
-  {emoji:'🌈', name:'レインボー',       grad:['#E53935','#AB47BC']},
+const SPECIAL_STICKER_IMAGES = [
+  'adorozatorumary','badtzmaru','beatcats','bonbonribbon','buddyeddy',
+  'bunnyandmatty','caribadix','charmmy','cheerychums','cherinacherine',
+  'chococat','cinnamon','cogimyun','daniel','dinosaurs',
+  'dokidoki','freshpunch','fukutaro','gaopowerroo','goropikadon',
+  'gudetama','hagurumanstyle','hanamaruobake','hangyodon','hellokitty',
+  'hellomimmy','hummingmint','jewelpet','kabukinyantaro','kashiwankomochi',
+  'keroppi','kikilala','kingyodohonpo','kirimichan','kumamilen',
+  'kuririn','kuromi','landry','littleforestfellow','lloromannic',
+  'magicaltwincomets','maimaimaigoen','marroncream','marumofubiyori','masyumaro',
+  'mellotune','mewkledreamy','monkichi','mymelody','mysweetpiano',
+  'noranekoland','nyaninyunyenyon','nyokkiandpenne','pandapple','pankunchi',
+  'pannapitta','patapatapeppy','pattyandjimmy','paupipo','pekkle',
+  'petapetaminilian','pochacco','pokkyokuten','pokopon','pompompurin',
+  'puwawa','retsuko','rilurilufairilu','risuru','runabouts',
+  'rururugakuen','shinkaizoku','showbyrock','sportingbears','strawberryking',
+  'sugarbunnies','sugarminuet','sweetcoron','tabo','tenorikuma',
+  'tinychum','tinypoem','tuxedosam','umeya','usahana',
+  'vaudevilleduo','winkipinki','wishmemell','yoshikitty','zashikibuta',
 ];
 
 let miniGameWin = false;
@@ -1171,7 +1193,8 @@ let scratchData = [];
 let scratchRevealCount = 0;
 let scratchRevealedIdxs = [];
 let slotRunning = false;
-let selectedSpecialIdx = null;
+let selectedSpecialImg = null;
+let selectedSpecialName = null;
 
 function showMiniGameSelect() {
   document.getElementById('celebrate-screen').classList.add('hidden');
@@ -1289,37 +1312,38 @@ function showGameResult(gameType, win) {
 
 /* ── SPECIAL STICKER SELECT ── */
 function showSpecialStickerSelect() {
-  selectedSpecialIdx = null;
+  selectedSpecialImg = null;
+  selectedSpecialName = null;
   document.getElementById('btn-confirm-special').disabled = true;
-  document.getElementById('special-sticker-grid').innerHTML = SPECIAL_STICKERS.map((s,i)=>`
-    <div class="sp-sticker-item" id="sp-${i}" onclick="selectSpecial(${i})"
-         style="animation:stickerDetailIn .4s cubic-bezier(.34,1.56,.64,1) ${(i*0.06).toFixed(2)}s both">
-      <div class="sp-sticker-wrap" style="background:linear-gradient(135deg,${s.grad[0]},${s.grad[1]})">
-        <span style="font-size:32px">${s.emoji}</span>
+  const picks = [...SPECIAL_STICKER_IMAGES].sort(()=>Math.random()-.5).slice(0,10);
+  document.getElementById('special-sticker-grid').innerHTML = picks.map((name,i)=>`
+    <div class="sp-sticker-item" id="sp-${i}" onclick="selectSpecial(${i},'${name}')"
+         style="animation:stickerDetailIn .4s cubic-bezier(.34,1.56,.64,1) ${(i*0.07).toFixed(2)}s both">
+      <div class="sp-sticker-wrap">
+        <img src="スペシャルシール/${name}.png" alt="${name}">
       </div>
-      <div class="sp-sticker-name">${s.name}</div>
     </div>`).join('');
   document.getElementById('special-sticker-screen').classList.remove('hidden');
 }
 
-function selectSpecial(idx) {
+function selectSpecial(idx, name) {
   document.querySelectorAll('.sp-sticker-item').forEach(el=>el.classList.remove('selected'));
   document.getElementById(`sp-${idx}`).classList.add('selected');
-  selectedSpecialIdx = idx;
+  selectedSpecialImg = `スペシャルシール/${name}.png`;
+  selectedSpecialName = name;
   document.getElementById('btn-confirm-special').disabled = false;
 }
 
 function confirmSpecialSticker() {
-  if (selectedSpecialIdx === null) return;
-  const s = SPECIAL_STICKERS[selectedSpecialIdx];
+  if (!selectedSpecialImg) return;
   const id = Date.now().toString();
   const date = new Date().toISOString().slice(0,10);
   familyRef().child(`stickers/${id}`).set({
-    date, emoji:s.emoji, name:s.name, tmpl:0,
-    condition:currentStickerCondition, isSpecial:true, specialId:selectedSpecialIdx
+    date, name:selectedSpecialName, condition:currentStickerCondition,
+    isSpecial:true, specialImg:selectedSpecialImg
   });
   document.getElementById('special-sticker-screen').classList.add('hidden');
-  selectedSpecialIdx = null;
+  selectedSpecialImg = null; selectedSpecialName = null;
   starEffect(5);
   if (pendingStickers.length > 0) setTimeout(processNextSticker, 800);
   setTimeout(()=>go('sticker'), 400);
