@@ -447,6 +447,29 @@
       box-shadow:0 0 0 2px rgba(255,215,0,.5), 0 4px 12px rgba(0,0,0,.18) !important;
     }
 
+    /* ── STICKER BOOK TABS ── */
+    .sticker-book-tab-row{display:flex;gap:8px;margin-top:12px;}
+    .sticker-book-tab-btn{flex:1;padding:9px 8px;border:none;border-radius:14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .18s;background:rgba(255,255,255,.2);color:rgba(255,255,255,.75);}
+    .sticker-book-tab-btn.active{background:white;color:#C44DFF;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+
+    /* ── SPECIAL ENCYCLOPEDIA ── */
+    .sp-enc-count-label{text-align:center;font-size:15px;font-weight:900;color:#F9A825;margin-bottom:10px;}
+    .sp-enc-progress{height:8px;background:#E0E0E0;border-radius:100px;margin:0 4px 14px;overflow:hidden;}
+    .sp-enc-progress-bar{height:100%;background:linear-gradient(90deg,#FFD700,#FF9800);border-radius:100px;transition:width .6s ease;}
+    .sp-enc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .sp-enc-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
+    .sp-enc-item.obtained{cursor:pointer;}
+    .sp-enc-wrap{width:58px;height:58px;border-radius:50%;background:white;border:3px solid #FFD700;box-shadow:0 0 0 2px rgba(255,215,0,.35),0 4px 12px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:transform .2s;}
+    .sp-enc-item.obtained .sp-enc-wrap:hover{transform:scale(1.1);}
+    .sp-enc-wrap img{width:100%;height:100%;object-fit:contain;padding:3px;}
+    .sp-enc-item.locked .sp-enc-wrap{filter:grayscale(1);opacity:.28;border-color:#CFD8DC;box-shadow:none;}
+    .sp-enc-badge{position:absolute;top:-4px;right:-4px;font-size:12px;z-index:2;line-height:1;}
+    .sp-enc-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(200,200,200,.45);font-size:20px;}
+    .sp-enc-name{font-size:8px;font-weight:700;text-align:center;line-height:1.3;max-width:64px;word-break:break-all;}
+    .sp-enc-item.obtained .sp-enc-name{color:#F9A825;}
+    .sp-enc-item.locked .sp-enc-name{color:#CFD8DC;}
+    .sp-enc-date{font-size:8px;color:#90A4AE;font-weight:600;}
+
     .hidden{display:none!important}
   </style>
 </head>
@@ -556,9 +579,18 @@
         <div class="sticker-book-header">
           <div class="sticker-book-title">🏷️ アオのシール帳</div>
           <div class="sticker-count" id="sticker-count">0枚ゲット！</div>
+          <div class="sticker-book-tab-row">
+            <button class="sticker-book-tab-btn active" id="sticker-book-tab-all" onclick="switchStickerBookTab('all')">🏷️ ゲットしたシール</button>
+            <button class="sticker-book-tab-btn" id="sticker-book-tab-special" onclick="switchStickerBookTab('special')">✨ スペシャル図鑑</button>
+          </div>
         </div>
-        <div class="sticker-album">
+        <div class="sticker-album" id="sticker-album-section">
           <div class="sticker-grid" id="sticker-grid"></div>
+        </div>
+        <div class="sticker-album hidden" id="special-enc-section">
+          <div class="sp-enc-count-label" id="sp-enc-count"></div>
+          <div class="sp-enc-progress"><div class="sp-enc-progress-bar" id="sp-enc-progress-bar" style="width:0%"></div></div>
+          <div class="sp-enc-grid" id="sp-enc-grid"></div>
         </div>
       </div>
 
@@ -1125,11 +1157,67 @@ function renderHistory(){
 
 /* ════ STICKER BOOK ════ */
 let renderedStickers = [];
+let stickerBookTab = 'all';
+
+function switchStickerBookTab(tab){
+  stickerBookTab=tab;
+  document.getElementById('sticker-book-tab-all').classList.toggle('active',tab==='all');
+  document.getElementById('sticker-book-tab-special').classList.toggle('active',tab==='special');
+  document.getElementById('sticker-album-section').classList.toggle('hidden',tab!=='all');
+  document.getElementById('special-enc-section').classList.toggle('hidden',tab!=='special');
+  if(tab==='special')renderSpecialEncyclopedia();
+}
+
+function renderSpecialEncyclopedia(){
+  // ゲット済みスペシャルシールのマップ（キャラ名→最初にゲットしたデータ）
+  const obtained={};
+  Object.values(appData.stickers).forEach(s=>{
+    if(s.isSpecial&&s.specialImg){
+      const name=s.specialImg.replace('スペシャルシール/','').replace('.png','');
+      if(!obtained[name])obtained[name]=s;
+    }
+  });
+  const gotCount=Object.keys(obtained).length;
+  const total=SPECIAL_STICKER_IMAGES.length;
+  const pct=total>0?Math.round(gotCount/total*100):0;
+  document.getElementById('sp-enc-count').textContent=`✨ ${gotCount} / ${total} 種類コレクト！（${pct}%）`;
+  document.getElementById('sp-enc-progress-bar').style.width=pct+'%';
+  document.getElementById('sp-enc-grid').innerHTML=SPECIAL_STICKER_IMAGES.map(name=>{
+    const s=obtained[name];
+    const got=!!s;
+    let dateStr='';
+    if(got){const[,mm,dd]=s.date.split('-');dateStr=`${parseInt(mm)}/${parseInt(dd)}ゲット`;}
+    return `<div class="sp-enc-item ${got?'obtained':'locked'}" ${got?`onclick="openStickerDetailBySpecialImg('スペシャルシール/${name}.png')"`:''}>
+      <div class="sp-enc-wrap">
+        <img src="スペシャルシール/${name}.png" alt="${name}" loading="lazy">
+        ${got?'<div class="sp-enc-badge">✨</div>':'<div class="sp-enc-lock">🔒</div>'}
+      </div>
+      <div class="sp-enc-name">${got?(s.name||name):'？？？'}</div>
+      ${got?`<div class="sp-enc-date">${dateStr}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openStickerDetailBySpecialImg(specialImg){
+  const s=Object.values(appData.stickers).find(s=>s.isSpecial&&s.specialImg===specialImg);
+  if(!s)return;
+  document.getElementById('sticker-detail-sticker').innerHTML=
+    `<div class="stk-wrap is-special" style="width:120px;height:120px;margin:0 auto;background:white;border-radius:50%;overflow:hidden;">
+      <img src="${specialImg}" alt="${s.name||'スペシャル'}" style="width:100%;height:100%;object-fit:contain;padding:8px">
+    </div>`;
+  const[,mm,dd]=s.date.split('-');
+  document.getElementById('sticker-detail-name').textContent=s.name||'スペシャルシール';
+  document.getElementById('sticker-detail-date').textContent=`${parseInt(mm)}月${parseInt(dd)}日 ゲット！`;
+  const condMap={homework:'📚 宿題コンプリート',test:'💯 テスト100点',juku:'🏫 塾 授業態度',dance:'💃 ダンスレッスン',chorus:'🎵 合唱の練習',veg:'🥦 野菜チャレンジ達成'};
+  document.getElementById('sticker-detail-cond').textContent=condMap[s.condition]||'🌟 すごい！';
+  document.getElementById('sticker-detail-overlay').classList.add('open');
+}
 
 function renderStickerBook(){
   const stickers=Object.values(appData.stickers).sort((a,b)=>a.date>b.date?1:-1);
   renderedStickers=stickers;
   document.getElementById('sticker-count').textContent=`${stickers.length}枚ゲット！`;
+  if(stickerBookTab==='special'){renderSpecialEncyclopedia();return;}
   const grid=document.getElementById('sticker-grid');
   if(!stickers.length){
     grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:32px 0"><div style="font-size:48px;margin-bottom:10px">📭</div><div style="font-size:13px;color:#90A4AE;font-weight:600;line-height:1.7">まだシールがないよ！<br>公文をがんばってゲットしよう✨</div></div>`;
