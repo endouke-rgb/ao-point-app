@@ -383,26 +383,64 @@
     .slot-symbol{font-size:50px;line-height:1;display:block;}
     .slot-sep{color:rgba(255,215,0,.7);font-size:28px;font-weight:900;}
 
-    /* ── SCRATCH CARD ── */
-    .scratch-grid{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
-      position:relative; z-index:1;
+    /* ── GACHA ── */
+    .gacha-capsule{width:100px;height:100px;position:relative;margin:0 auto;}
+    .gacha-cap-top{
+      position:absolute;top:0;left:0;right:0;height:50%;
+      border-radius:50px 50px 0 0;border:3px solid rgba(255,255,255,.5);
+      transition:transform .45s cubic-bezier(.22,1,.36,1);
     }
-    .scratch-cell{
-      width:84px; height:84px; border-radius:16px; display:flex;
-      align-items:center; justify-content:center; font-size:38px;
-      cursor:pointer; position:relative; overflow:hidden;
-      background:white; border:3px solid rgba(255,255,255,.3);
-      transition:transform .15s;
+    .gacha-cap-bottom{
+      position:absolute;bottom:0;left:0;right:0;height:50%;
+      border-radius:0 0 50px 50px;border:3px solid rgba(255,255,255,.5);
+      opacity:.85;transition:transform .45s cubic-bezier(.22,1,.36,1);
     }
-    .scratch-cell:active{transform:scale(.93);}
-    .scratch-cell.disabled{cursor:default;opacity:.7;}
-    .scratch-cover{
-      position:absolute; inset:0; background:linear-gradient(135deg,#9E9E9E,#EEEEEE);
-      border-radius:13px; display:flex; align-items:center; justify-content:center;
-      font-size:32px; transition:opacity .35s, transform .35s;
+    .gacha-capsule.open .gacha-cap-top{transform:translateY(-46px);}
+    .gacha-capsule.open .gacha-cap-bottom{transform:translateY(46px);}
+    .gacha-cap-symbol{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-size:44px;z-index:2;animation:bigTextPop .4s cubic-bezier(.34,1.56,.64,1);
     }
-    .scratch-cell.revealed .scratch-cover{opacity:0;transform:scale(0) rotate(20deg);}
+    @keyframes capsuleDrop{
+      0%{transform:translateY(-180px) scale(.5);opacity:0;}
+      60%{transform:translateY(10px) scale(1.06);opacity:1;}
+      80%{transform:translateY(-5px) scale(.98);}
+      100%{transform:translateY(0) scale(1);}
+    }
+    .gacha-capsule.dropping{animation:capsuleDrop .9s cubic-bezier(.22,1,.36,1) forwards;}
+
+    /* ── BINGO ── */
+    .bingo-card{
+      display:grid;grid-template-columns:repeat(3,80px);gap:8px;
+      background:rgba(0,0,0,.3);border:3px solid rgba(255,215,0,.6);
+      border-radius:20px;padding:14px;position:relative;z-index:1;
+    }
+    .bingo-cell{
+      width:80px;height:80px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;font-size:34px;
+      background:white;border:3px solid rgba(255,255,255,.3);transition:all .3s;
+    }
+    .bingo-cell.free{
+      background:linear-gradient(135deg,#FFD700,#FF8F00);
+      border-color:#FFD700;box-shadow:0 0 10px rgba(255,215,0,.5);
+    }
+    .bingo-cell.marked{
+      background:linear-gradient(135deg,#FFE082,#FFB300);
+      border-color:#FFD700;box-shadow:0 0 12px rgba(255,215,0,.5);
+      animation:markPop .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .bingo-cell.bingo-line{
+      background:linear-gradient(135deg,#FFD700,#FF6B00)!important;
+      border-color:#FFD700!important;
+      box-shadow:0 0 22px rgba(255,150,0,.9)!important;
+      animation:bingoPop .5s cubic-bezier(.34,1.56,.64,1)!important;
+    }
+    @keyframes markPop{0%{transform:scale(.7);}70%{transform:scale(1.15);}100%{transform:scale(1);}}
+    @keyframes bingoPop{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
+    .bingo-called-list{
+      color:rgba(255,255,255,.85);font-size:20px;font-weight:700;
+      text-align:center;margin-top:10px;position:relative;z-index:1;letter-spacing:3px;
+    }
 
     /* ── SPECIAL STICKER SELECT ── */
     .special-sticker-grid{
@@ -710,18 +748,23 @@
 <!-- MINI GAME SELECT SCREEN -->
 <div id="minigame-select-screen" class="celebrate-screen hidden">
   <div class="celeb-rays"></div>
-  <div style="font-size:30px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:6px;animation:bigTextPop .5s cubic-bezier(.34,1.56,.64,1)">どっちでチャレンジ？</div>
-  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:32px;animation:fadeUp .5s ease-out .2s both">当たりが出たら✨スペシャルシール✨ゲット！</div>
-  <div style="display:flex;gap:16px;position:relative;z-index:1;animation:fadeUp .5s ease-out .4s both">
-    <button class="mg-game-btn" onclick="showSlot()">
+  <div style="font-size:28px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:6px;animation:bigTextPop .5s cubic-bezier(.34,1.56,.64,1)">どれでチャレンジ？</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:28px;animation:fadeUp .5s ease-out .2s both">当たりが出たら✨スペシャルシール✨ゲット！</div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:360px;position:relative;z-index:1;animation:fadeUp .5s ease-out .4s both">
+    <button class="mg-game-btn" style="width:100px" onclick="showSlot()">
       <span class="mg-game-icon">🎰</span>
       <div class="mg-game-name">スロット</div>
       <div class="mg-game-desc">3つそろえよう！</div>
     </button>
-    <button class="mg-game-btn" onclick="showScratch()">
-      <span class="mg-game-icon">🎫</span>
-      <div class="mg-game-name">スクラッチ</div>
-      <div class="mg-game-desc">削って当てよう！</div>
+    <button class="mg-game-btn" style="width:100px" onclick="showGacha()">
+      <span class="mg-game-icon">🎱</span>
+      <div class="mg-game-name">ガチャ</div>
+      <div class="mg-game-desc">まわしてゲット！</div>
+    </button>
+    <button class="mg-game-btn" style="width:100px" onclick="showBingo()">
+      <span class="mg-game-icon">🎯</span>
+      <div class="mg-game-name">ビンゴ</div>
+      <div class="mg-game-desc">ビンゴをねらえ！</div>
     </button>
   </div>
 </div>
@@ -743,14 +786,31 @@
   <div id="slot-result" class="hidden" style="margin-top:16px;text-align:center"></div>
 </div>
 
-<!-- SCRATCH SCREEN -->
-<div id="scratch-screen" class="celebrate-screen hidden">
+<!-- GACHA SCREEN -->
+<div id="gacha-screen" class="celebrate-screen hidden">
   <div class="celeb-rays"></div>
-  <div style="font-size:24px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:6px">🎫 スクラッチくじ</div>
-  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:20px">3マスこすってみよう！</div>
-  <div class="scratch-grid" id="scratch-grid"></div>
-  <div id="scratch-remain" style="color:rgba(255,255,255,.9);font-size:14px;font-weight:700;margin-top:14px;position:relative;z-index:1">あと3まいこすれる</div>
-  <div id="scratch-result" class="hidden" style="margin-top:14px;text-align:center"></div>
+  <div style="font-size:24px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:20px">🎱 ガチャガチャ</div>
+  <div style="position:relative;z-index:1;height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+    <div id="gacha-capsule" class="gacha-capsule" style="display:none">
+      <div class="gacha-cap-top" id="gacha-cap-top"></div>
+      <div class="gacha-cap-bottom" id="gacha-cap-bottom"></div>
+      <div class="gacha-cap-symbol hidden" id="gacha-cap-symbol"></div>
+    </div>
+  </div>
+  <button class="celeb-btn" id="gacha-spin-btn" onclick="spinGacha()" style="position:relative;z-index:1">まわす！ 🎱</button>
+  <div id="gacha-result" class="hidden" style="margin-top:16px;text-align:center"></div>
+</div>
+
+<!-- BINGO SCREEN -->
+<div id="bingo-screen" class="celebrate-screen hidden" style="overflow-y:auto;padding:24px 16px 40px">
+  <div class="celeb-rays"></div>
+  <div style="font-size:24px;font-weight:900;color:white;position:relative;z-index:1;margin-bottom:4px">🎯 ビンゴゲーム</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);position:relative;z-index:1;margin-bottom:12px">1ライン揃えればビンゴ！（最大7回）</div>
+  <div id="bingo-flash" style="font-size:64px;line-height:1;min-height:70px;position:relative;z-index:1;text-align:center;margin-bottom:10px"></div>
+  <div class="bingo-card" id="bingo-grid"></div>
+  <div class="bingo-called-list" id="bingo-called" style="min-height:28px"></div>
+  <div id="bingo-result" class="hidden" style="margin-top:14px;text-align:center"></div>
+  <button class="celeb-btn" id="bingo-next-btn" onclick="callNextBingo()" style="margin-top:18px;position:relative;z-index:1">つぎの絵文字は？ 🎯</button>
 </div>
 
 <!-- SPECIAL STICKER SELECT SCREEN -->
@@ -1289,12 +1349,27 @@ const SPECIAL_STICKER_IMAGES = [
 ];
 
 let miniGameWin = false;
-let scratchData = [];
-let scratchRevealCount = 0;
-let scratchRevealedIdxs = [];
 let slotRunning = false;
 let selectedSpecialImg = null;
 let selectedSpecialName = null;
+
+/* ── GACHA state ── */
+const GACHA_COLORS = [
+  ['#FF6B6B','#EE0979'],
+  ['#42A5F5','#1565C0'],
+  ['#FFD700','#FF8F00'],
+  ['#66BB6A','#2E7D32'],
+  ['#FF6B9D','#C44DFF'],
+];
+
+/* ── BINGO state ── */
+const BINGO_SYMBOLS = ['🍬','🍭','🍫','🍡','🍩','🧁','🍰','🍮'];
+const BINGO_LINES   = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let bingoCard      = [];
+let bingoCallOrder = [];
+let bingoCallIdx   = 0;
+let bingoMarked    = [];
+let bingoDone      = false;
 
 function showMiniGameSelect() {
   document.getElementById('celebrate-screen').classList.add('hidden');
@@ -1344,49 +1419,104 @@ function rollSlot() {
   });
 }
 
-/* ── SCRATCH ── */
-function showScratch() {
+/* ── GACHA ── */
+function showGacha() {
   document.getElementById('minigame-select-screen').classList.add('hidden');
   miniGameWin = Math.random() < 0.33;
-  if (miniGameWin) {
-    const ws = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
-    scratchData = Array(9).fill(ws);
-  } else {
-    const pool = [...SLOT_SYMBOLS, ...SLOT_SYMBOLS, 'x'].slice(0,9);
-    scratchData = pool.sort(()=>Math.random()-.5);
-    // ensure no symbol appears 3+ times
-    const cnt = {};
-    scratchData.forEach(s=>{cnt[s]=(cnt[s]||0)+1;});
-    scratchData = scratchData.map(s=>{
-      if((cnt[s]||0)>2){cnt[s]--;const alt=SLOT_SYMBOLS.find(a=>a!==s&&(cnt[a]||0)<2);if(alt){cnt[alt]=(cnt[alt]||0)+1;return alt;}}
-      return s;
-    });
-  }
-  scratchRevealCount = 0;
-  scratchRevealedIdxs = [];
-  document.getElementById('scratch-remain').textContent = 'あと3まいこすれる';
-  document.getElementById('scratch-result').classList.add('hidden');
-  const grid = document.getElementById('scratch-grid');
-  grid.innerHTML = scratchData.map((sym,i)=>`
-    <div class="scratch-cell" id="sc-${i}" onclick="revealScratch(${i})">
-      <span>${sym}</span>
-      <div class="scratch-cover">🪙</div>
-    </div>`).join('');
-  document.getElementById('scratch-screen').classList.remove('hidden');
+  const capsule = document.getElementById('gacha-capsule');
+  capsule.style.display = 'none';
+  capsule.className = 'gacha-capsule';
+  document.getElementById('gacha-cap-symbol').classList.add('hidden');
+  document.getElementById('gacha-result').classList.add('hidden');
+  const btn = document.getElementById('gacha-spin-btn');
+  btn.disabled = false; btn.textContent = 'まわす！ 🎱';
+  document.getElementById('gacha-screen').classList.remove('hidden');
 }
 
-function revealScratch(idx) {
-  if (scratchRevealCount >= 3 || scratchRevealedIdxs.includes(idx)) return;
-  scratchRevealedIdxs.push(idx);
-  scratchRevealCount++;
-  document.getElementById(`sc-${idx}`).classList.add('revealed');
-  if (navigator.vibrate) navigator.vibrate(50);
-  const rem = 3 - scratchRevealCount;
-  document.getElementById('scratch-remain').textContent = rem > 0 ? `あと${rem}まいこすれる` : '';
-  if (rem === 0) {
-    document.querySelectorAll('.scratch-cell:not(.revealed)').forEach(c=>c.classList.add('disabled'));
-    setTimeout(()=>showGameResult('scratch', miniGameWin), 700);
-  }
+function spinGacha() {
+  const btn = document.getElementById('gacha-spin-btn');
+  btn.disabled = true; btn.textContent = 'まわってる…';
+  const [c1,c2] = GACHA_COLORS[Math.floor(Math.random()*GACHA_COLORS.length)];
+  document.getElementById('gacha-cap-top').style.background    = `linear-gradient(135deg,${c1},${c2})`;
+  document.getElementById('gacha-cap-bottom').style.background = `linear-gradient(135deg,${c1},${c2})`;
+  const capsule = document.getElementById('gacha-capsule');
+  capsule.style.display = 'block';
+  void capsule.offsetWidth;
+  capsule.className = 'gacha-capsule dropping';
+  if (navigator.vibrate) navigator.vibrate([50,30,80]);
+  setTimeout(() => {
+    capsule.className = 'gacha-capsule open';
+    const sym = document.getElementById('gacha-cap-symbol');
+    sym.textContent = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+    sym.classList.remove('hidden');
+    if (navigator.vibrate) navigator.vibrate(150);
+    setTimeout(() => showGameResult('gacha', miniGameWin), 700);
+  }, 1300);
+}
+
+/* ── BINGO ── */
+function showBingo() {
+  document.getElementById('minigame-select-screen').classList.add('hidden');
+  const syms = shuffle([...BINGO_SYMBOLS]);
+  bingoCard      = [...syms.slice(0,4), '⭐', ...syms.slice(4)];
+  bingoCallOrder = shuffle([...BINGO_SYMBOLS]);
+  bingoCallIdx   = 0;
+  bingoDone      = false;
+  bingoMarked    = [false,false,false,false,true,false,false,false,false];
+  document.getElementById('bingo-flash').textContent   = '';
+  document.getElementById('bingo-called').textContent  = '';
+  document.getElementById('bingo-result').classList.add('hidden');
+  const btn = document.getElementById('bingo-next-btn');
+  btn.disabled = false; btn.textContent = 'つぎの絵文字は？ 🎯';
+  renderBingoCard();
+  document.getElementById('bingo-screen').classList.remove('hidden');
+}
+
+function renderBingoCard() {
+  document.getElementById('bingo-grid').innerHTML = bingoCard.map((sym,i) => {
+    let cls = 'bingo-cell';
+    if (i === 4)         cls += ' free';
+    else if (bingoMarked[i]) cls += ' marked';
+    return `<div class="${cls}" id="bc-${i}">${sym}</div>`;
+  }).join('');
+}
+
+function callNextBingo() {
+  if (bingoDone || bingoCallIdx >= 7) return;
+  const btn = document.getElementById('bingo-next-btn');
+  btn.disabled = true;
+  const called = bingoCallOrder[bingoCallIdx++];
+  const flash = document.getElementById('bingo-flash');
+  flash.textContent = called;
+  flash.style.animation = 'none';
+  void flash.offsetWidth;
+  flash.style.animation = 'bigTextPop .45s cubic-bezier(.34,1.56,.64,1)';
+  if (navigator.vibrate) navigator.vibrate(60);
+  bingoCard.forEach((sym,i) => { if (sym === called) bingoMarked[i] = true; });
+  renderBingoCard();
+  document.getElementById('bingo-called').textContent =
+    bingoCallOrder.slice(0, bingoCallIdx).join('  ');
+  setTimeout(() => {
+    const winLines = BINGO_LINES.filter(line => line.every(i => bingoMarked[i]));
+    if (winLines.length > 0) {
+      bingoDone = true;
+      winLines.flat().forEach(i => {
+        const el = document.getElementById(`bc-${i}`);
+        if (el) el.classList.add('bingo-line');
+      });
+      if (navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
+      setTimeout(() => showGameResult('bingo', true), 900);
+      return;
+    }
+    if (bingoCallIdx >= 7) {
+      bingoDone = true;
+      setTimeout(() => showGameResult('bingo', false), 500);
+      return;
+    }
+    const rem = 7 - bingoCallIdx;
+    btn.disabled = false;
+    btn.textContent = `つぎの絵文字は？ 🎯（あと${rem}回）`;
+  }, 500);
 }
 
 /* ── GAME RESULT (shared) ── */
